@@ -1,0 +1,90 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: npm run start:dev
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${API_CONTAINER_PORT:-3000}
+      POSTGRES_DB: ${POSTGRES_DB:-shortlink}
+      POSTGRES_USER: ${POSTGRES_USER:-shortlink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shortlink_dev_password}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      MAILPIT_HOST: ${MAILPIT_HOST:-mailpit}
+      MAILPIT_SMTP_PORT: ${MAILPIT_SMTP_PORT:-1025}
+    ports:
+      - "${API_HOST_PORT:-3000}:${API_CONTAINER_PORT:-3000}"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://127.0.0.1:' + (process.env.PORT || 3000) + '/', (res) => process.exit(res.statusCode >= 200 && res.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-shortlink}
+      POSTGRES_USER: ${POSTGRES_USER:-shortlink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shortlink_dev_password}
+    volumes:
+      - shortlink_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7.4.1-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - shortlink_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:8025/ || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  shortlink_postgres_data:
+  shortlink_redis_data:
