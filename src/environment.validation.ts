@@ -29,6 +29,9 @@ export type AppEnvironment = {
     backoffMs: number;
   };
   frontendResetUrl: string;
+  publicShortUrlBase: string;
+  linkCodeGenerationMaxAttempts: number;
+  linkResolutionCacheTtlSeconds: number;
 };
 
 function required(env: NodeJS.Dict<string>, key: string): string {
@@ -94,6 +97,55 @@ function parsePositiveInt(value: string, key: string): number {
   return parsed;
 }
 
+function parsePositiveIntOrDefault(
+  value: string | undefined,
+  key: string,
+  fallback: number,
+): number {
+  if (value === undefined || value.trim() === '') {
+    return fallback;
+  }
+
+  return parsePositiveInt(value, key);
+}
+
+function parsePublicShortUrlBase(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(
+      'Invalid PUBLIC_SHORT_URL_BASE: must be an absolute HTTPS origin',
+    );
+  }
+
+  if (url.protocol !== 'https:') {
+    throw new Error(
+      'Invalid PUBLIC_SHORT_URL_BASE: must use the HTTPS protocol',
+    );
+  }
+
+  if (url.username || url.password) {
+    throw new Error(
+      'Invalid PUBLIC_SHORT_URL_BASE: must not include credentials',
+    );
+  }
+
+  if (url.search || url.hash) {
+    throw new Error(
+      'Invalid PUBLIC_SHORT_URL_BASE: must not include query string or fragment',
+    );
+  }
+
+  if (url.pathname !== '/' && url.pathname !== '') {
+    throw new Error(
+      'Invalid PUBLIC_SHORT_URL_BASE: must not include a path beyond /',
+    );
+  }
+
+  return url.origin;
+}
+
 export function validateEnvironment(
   env: NodeJS.Dict<string> = process.env,
 ): AppEnvironment {
@@ -142,5 +194,18 @@ export function validateEnvironment(
       ),
     },
     frontendResetUrl: required(env, 'FRONTEND_RESET_URL'),
+    publicShortUrlBase: parsePublicShortUrlBase(
+      required(env, 'PUBLIC_SHORT_URL_BASE'),
+    ),
+    linkCodeGenerationMaxAttempts: parsePositiveIntOrDefault(
+      env.LINK_CODE_GENERATION_MAX_ATTEMPTS,
+      'LINK_CODE_GENERATION_MAX_ATTEMPTS',
+      5,
+    ),
+    linkResolutionCacheTtlSeconds: parsePositiveIntOrDefault(
+      env.LINK_RESOLUTION_CACHE_TTL_SECONDS,
+      'LINK_RESOLUTION_CACHE_TTL_SECONDS',
+      300,
+    ),
   };
 }
