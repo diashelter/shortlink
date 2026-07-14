@@ -158,15 +158,16 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] `links` possui UUID público, FK para `users`, URL canônica, código, estado e timestamps.
-- [ ] Existem constraints únicas para `shortCode` e `(userId, destinationUrl)`.
-- [ ] Existem índices para listagem determinística e contagem de Links Ativos.
-- [ ] A migration é gerada pelo CLI TypeORM, aplica e reverte contra PostgreSQL.
-- [ ] Testes de integração validam schema, constraints e FK.
+- [x] `links` possui UUID público, FK para `users`, URL canônica, código, estado e timestamps.
+- [x] Existem constraints únicas para `shortCode` e `(userId, destinationUrl)`.
+- [x] Existem índices para listagem determinística e contagem de Links Ativos.
+- [x] A migration é gerada pelo CLI TypeORM, aplica e reverte contra PostgreSQL.
+- [x] Testes de integração validam schema, constraints e FK.
 
 **Tests:** integration  
 **Gate:** `docker compose exec api npm run test:integration -- --runInBand`  
-**Verify:** gerar/aplicar/reverter migration funciona no container e as constraints rejeitam duplicidades.
+**Verify:** gerar/aplicar/reverter migration funciona no container e as constraints rejeitam duplicidades.  
+**Status:** ✅ Complete
 
 ---
 
