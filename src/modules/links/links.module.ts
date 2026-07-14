@@ -48,6 +48,6 @@ import { TypeormLinksRepository } from './typeorm-links.repository';
       inject: [LinksRepository, LinkCodeGenerator, LinkResolutionCache],
     },
   ],
-  exports: [LinksService],
+  exports: [LinksService, LinksRepository],
 })
 export class LinksModule {}

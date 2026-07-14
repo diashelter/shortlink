@@ -203,10 +203,12 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Tools:** MCP: NONE; Skill: codenavi
 
 **Done when:**
-- [ ] `GET /api/v1/links/:linkId/statistics` aplica as 30 datas UTC entre hoje menos 29 dias e hoje, e máximo de 12 meses-calendário inclusivos.
-- [ ] Resposta contém totais, diário e mensal densos/cronológicos, países ordenados por acessos e `timezone: UTC`.
-- [ ] Link de outro Usuário retorna `403`; inexistente retorna `404`; desativado preserva histórico.
-- [ ] Intervalo inválido retorna `422` no envelope existente.
+- [x] `GET /api/v1/links/:linkId/statistics` aplica as 30 datas UTC entre hoje menos 29 dias e hoje, e máximo de 12 meses-calendário inclusivos.
+- [x] Resposta contém totais, diário e mensal densos/cronológicos, países ordenados por acessos e `timezone: UTC`.
+- [x] Link de outro Usuário retorna `403`; inexistente retorna `404`; desativado preserva histórico.
+- [x] Intervalo inválido retorna `422` no envelope existente.
+
+**Status:** ✅ Complete
 
 **Tests:** e2e  
 **Gate:** `docker compose exec api npm run test:e2e -- --runInBand`  
