@@ -1,3 +1,6 @@
+import { AccountRole } from './account-role.enum';
+import { AccountStatus } from './account-status.enum';
+
 export enum SessionRevocationReason {
   LOGOUT = 'LOGOUT',
   NEW_LOGIN = 'NEW_LOGIN',
@@ -14,3 +17,70 @@ export enum AuthAuditEventType {
 
 /** Sanitized audit payload — never include passwords, codes, tokens, raw emails, or headers. */
 export type AuthAuditMetadata = Record<string, string | number | boolean | null>;
+
+export type AccountRecord = {
+  id: string;
+  email: string;
+  status: AccountStatus;
+  role: AccountRole;
+  passwordHash: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type AuthSessionRecord = {
+  id: string;
+  userId: string;
+  refreshTokenHash: string;
+  csrfTokenHash: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  revocationReason: SessionRevocationReason | null;
+  createdAt: Date;
+  lastRotatedAt: Date;
+};
+
+export type SessionRefreshTokenRecord = {
+  id: string;
+  sessionId: string;
+  tokenHash: string;
+  issuedAt: Date;
+  usedAt: Date | null;
+  expiresAt: Date;
+};
+
+export type PasswordResetTokenRecord = {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt: Date | null;
+  createdAt: Date;
+};
+
+export type CreatePendingAccountInput = {
+  email: string;
+  passwordHash: string;
+};
+
+export type CreateExclusiveSessionInput = {
+  refreshTokenHash: string;
+  csrfTokenHash: string;
+  expiresAt: Date;
+};
+
+export type CreateExclusiveSessionResult = {
+  session: AuthSessionRecord;
+  refreshToken: SessionRefreshTokenRecord;
+};
+
+export type RotateRefreshTokenInput = {
+  currentTokenHash: string;
+  newTokenHash: string;
+  newExpiresAt: Date;
+};
+
+export type CreatePasswordResetTokenInput = {
+  tokenHash: string;
+  expiresAt: Date;
+};
