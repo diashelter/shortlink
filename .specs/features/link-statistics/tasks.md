@@ -75,11 +75,13 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Tools:** MCP: NONE; Skill: codenavi
 
 **Done when:**
-- [ ] Assinaturas automatizadas conhecidas são excluídas por regra explícita.
-- [ ] User-agent ausente permanece elegível para coleta.
-- [ ] Pseudônimo muda entre Links e dias UTC e não expõe seus insumos.
-- [ ] Resolver nunca chama rede e retorna `Unknown` para erro, IP privado, inválido ou sem match.
-- [ ] Testes não registram IP/user-agent em mensagens de falha.
+- [x] Assinaturas automatizadas conhecidas são excluídas por regra explícita.
+- [x] User-agent ausente permanece elegível para coleta.
+- [x] Pseudônimo muda entre Links e dias UTC e não expõe seus insumos.
+- [x] Resolver nunca chama rede e retorna `Unknown` para erro, IP privado, inválido ou sem match.
+- [x] Testes não registram IP/user-agent em mensagens de falha.
+
+**Status:** ✅ Complete
 
 **Tests:** unit  
 **Gate:** `docker compose exec api npm run test -- --runInBand`  
