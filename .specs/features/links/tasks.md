@@ -186,15 +186,16 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] A abstração não importa TypeORM, entidades ou tipos HTTP.
-- [ ] Criação e reativação bloqueiam a conta, preservam o limite de dez Links Ativos e retornam resultados distintos para criado, existente, reativado e limite excedido.
-- [ ] Listagem filtra por proprietário/estado, pagina e ordena por `createdAt DESC, id DESC`.
-- [ ] Mudanças de estado diferenciam Link inexistente, Link de outro Usuário, estado já aplicado e limite excedido.
-- [ ] Testes de integração cobrem propriedade, deduplicação, paginação, concorrência pela décima vaga e unicidade global de código.
+- [x] A abstração não importa TypeORM, entidades ou tipos HTTP.
+- [x] Criação e reativação bloqueiam a conta, preservam o limite de dez Links Ativos e retornam resultados distintos para criado, existente, reativado e limite excedido.
+- [x] Listagem filtra por proprietário/estado, pagina e ordena por `createdAt DESC, id DESC`.
+- [x] Mudanças de estado diferenciam Link inexistente, Link de outro Usuário, estado já aplicado e limite excedido.
+- [x] Testes de integração cobrem propriedade, deduplicação, paginação, concorrência pela décima vaga e unicidade global de código.
 
 **Tests:** integration  
 **Gate:** `docker compose exec api npm run test:integration -- --runInBand`  
-**Verify:** requisições concorrentes ao repositório não deixam um Usuário com mais de dez Links Ativos.
+**Verify:** requisições concorrentes ao repositório não deixam um Usuário com mais de dez Links Ativos.  
+**Status:** ✅ Complete
 
 ---
 
