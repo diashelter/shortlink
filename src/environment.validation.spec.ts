@@ -14,6 +14,9 @@ const validEnv = {
   REDIS_PORT: '6379',
   MAILPIT_HOST: 'mailpit',
   MAILPIT_SMTP_PORT: '1025',
+  MAIL_FROM: 'noreply@shortlink.local',
+  EMAIL_QUEUE_ATTEMPTS: '5',
+  EMAIL_QUEUE_BACKOFF_MS: '2000',
 };
 
 describe('validateEnvironment', () => {
@@ -29,6 +32,8 @@ describe('validateEnvironment', () => {
     expect(config.postgres.host).toBe('postgres');
     expect(config.redis.host).toBe('redis');
     expect(config.mailpit.host).toBe('mailpit');
+    expect(config.mail.from).toBe('noreply@shortlink.local');
+    expect(config.emailQueue).toEqual({ attempts: 5, backoffMs: 2000 });
   });
 
   it('falls back to API_CONTAINER_PORT when PORT is absent', () => {

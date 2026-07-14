@@ -18,6 +18,13 @@ export type AppEnvironment = {
     host: string;
     smtpPort: number;
   };
+  mail: {
+    from: string;
+  };
+  emailQueue: {
+    attempts: number;
+    backoffMs: number;
+  };
 };
 
 function required(env: NodeJS.Dict<string>, key: string): string {
@@ -74,6 +81,15 @@ function parseCorsOrigins(raw: string): string[] {
   return origins;
 }
 
+function parsePositiveInt(value: string, key: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid positive integer for ${key}: ${value}`);
+  }
+
+  return parsed;
+}
+
 export function validateEnvironment(
   env: NodeJS.Dict<string> = process.env,
 ): AppEnvironment {
@@ -103,6 +119,19 @@ export function validateEnvironment(
       smtpPort: parsePort(
         required(env, 'MAILPIT_SMTP_PORT'),
         'MAILPIT_SMTP_PORT',
+      ),
+    },
+    mail: {
+      from: required(env, 'MAIL_FROM'),
+    },
+    emailQueue: {
+      attempts: parsePositiveInt(
+        required(env, 'EMAIL_QUEUE_ATTEMPTS'),
+        'EMAIL_QUEUE_ATTEMPTS',
+      ),
+      backoffMs: parsePositiveInt(
+        required(env, 'EMAIL_QUEUE_BACKOFF_MS'),
+        'EMAIL_QUEUE_BACKOFF_MS',
       ),
     },
   };
