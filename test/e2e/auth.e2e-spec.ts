@@ -133,6 +133,53 @@ function findRefreshCookie(setCookie: string | string[] | undefined): string | u
   );
 }
 
+function cookiePairFromSetCookie(setCookie: string): string {
+  return setCookie.split(';')[0];
+}
+
+const ALLOWED_ORIGIN = 'https://localhost:8443';
+
+type SessionCredentials = {
+  accessToken: string;
+  csrfToken: string;
+  refreshCookie: string;
+  cookieHeader: string;
+};
+
+async function completeLoginSession(
+  email: string,
+  clientIp: string,
+): Promise<SessionCredentials> {
+  const login = await postAuthJson(
+    '/api/v1/auth/login',
+    { email, password: VALID_PASSWORD },
+    { 'X-Forwarded-For': clientIp },
+  );
+  expect(login.statusCode).toBe(202);
+  const challengeId = (login.body as { challengeId: string }).challengeId;
+  const code = await waitForLoginCode(email);
+
+  const verified = await postAuthJson('/api/v1/auth/verify-login', {
+    challengeId,
+    code,
+  });
+  expect(verified.statusCode).toBe(200);
+
+  const body = verified.body as {
+    accessToken: string;
+    csrfToken: string;
+  };
+  const refreshCookie = findRefreshCookie(verified.headers['set-cookie']);
+  expect(refreshCookie).toBeDefined();
+
+  return {
+    accessToken: body.accessToken,
+    csrfToken: body.csrfToken,
+    refreshCookie: refreshCookie!,
+    cookieHeader: cookiePairFromSetCookie(refreshCookie!),
+  };
+}
+
 async function postAuthJson(
   path: string,
   body: unknown,
@@ -856,6 +903,176 @@ describe('Auth HTTP module (e2e)', () => {
         .get('/api/v1/auth/test/protected')
         .set('Authorization', `Bearer ${secondAccessToken}`)
         .expect(200);
+    });
+  });
+
+  describe('POST /api/v1/auth/refresh and logout', () => {
+    it('rotates refresh, rejects reuse, and logout invalidates the JWT immediately', async () => {
+      const email = `refresh-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.90';
+
+      await registerAndActivate(email, clientIp);
+      await deleteAllMailpitMessages();
+
+      const session = await completeLoginSession(email, clientIp);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${session.accessToken}`)
+        .expect(200);
+
+      const refreshed = await postAuthJson(
+        '/api/v1/auth/refresh',
+        {},
+        {
+          Cookie: session.cookieHeader,
+          'X-CSRF-Token': session.csrfToken,
+          Origin: ALLOWED_ORIGIN,
+        },
+      );
+      expect(refreshed.statusCode).toBe(200);
+      expect(refreshed.body).toEqual(
+        expect.objectContaining({
+          accessToken: expect.any(String),
+          expiresIn: expect.any(Number),
+        }),
+      );
+      expect(
+        (refreshed.body as { csrfToken?: unknown }).csrfToken,
+      ).toBeUndefined();
+      expect(
+        (refreshed.body as { refreshToken?: unknown }).refreshToken,
+      ).toBeUndefined();
+
+      const rotatedCookie = findRefreshCookie(refreshed.headers['set-cookie']);
+      expect(rotatedCookie).toBeDefined();
+      expect(cookiePairFromSetCookie(rotatedCookie!)).not.toBe(
+        session.cookieHeader,
+      );
+
+      const newAccessToken = (refreshed.body as { accessToken: string })
+        .accessToken;
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${newAccessToken}`)
+        .expect(200);
+
+      const reuse = await postAuthJson(
+        '/api/v1/auth/refresh',
+        {},
+        {
+          Cookie: session.cookieHeader,
+          'X-CSRF-Token': session.csrfToken,
+          Origin: ALLOWED_ORIGIN,
+        },
+      );
+      expect(reuse.statusCode).toBe(401);
+      expect(reuse.body).toEqual(
+        expect.objectContaining({
+          statusCode: 401,
+          code: 'SESSION_INVALID',
+          message: expect.any(String),
+        }),
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${newAccessToken}`)
+        .expect(401);
+
+      await deleteAllMailpitMessages();
+      const relogin = await completeLoginSession(email, '198.51.100.91');
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${relogin.accessToken}`)
+        .expect(200);
+
+      const loggedOut = await postAuthJson(
+        '/api/v1/auth/logout',
+        {},
+        {
+          Cookie: relogin.cookieHeader,
+          'X-CSRF-Token': relogin.csrfToken,
+          Origin: ALLOWED_ORIGIN,
+        },
+      );
+      expect(loggedOut.statusCode).toBe(204);
+      expect(loggedOut.body).toBe('');
+
+      const clearedCookie = findRefreshCookie(loggedOut.headers['set-cookie']);
+      expect(clearedCookie).toBeDefined();
+      expect(clearedCookie!.toLowerCase()).toMatch(
+        /(?:max-age=0|expires=)/i,
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${relogin.accessToken}`)
+        .expect(401);
+    });
+
+    it('rejects refresh without CSRF token or with a disallowed origin', async () => {
+      const email = `csrf-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.92';
+
+      await registerAndActivate(email, clientIp);
+      await deleteAllMailpitMessages();
+      const session = await completeLoginSession(email, clientIp);
+
+      const missingCsrf = await postAuthJson(
+        '/api/v1/auth/refresh',
+        {},
+        {
+          Cookie: session.cookieHeader,
+          Origin: ALLOWED_ORIGIN,
+        },
+      );
+      expect(missingCsrf.statusCode).toBe(403);
+      expect(missingCsrf.body).toEqual(
+        expect.objectContaining({
+          statusCode: 403,
+          code: 'CSRF_VALIDATION_FAILED',
+          message: expect.any(String),
+        }),
+      );
+
+      const wrongOrigin = await postAuthJson(
+        '/api/v1/auth/refresh',
+        {},
+        {
+          Cookie: session.cookieHeader,
+          'X-CSRF-Token': session.csrfToken,
+          Origin: 'https://evil.example',
+        },
+      );
+      expect(wrongOrigin.statusCode).toBe(403);
+      expect(wrongOrigin.body).toEqual(
+        expect.objectContaining({
+          statusCode: 403,
+          code: 'CSRF_VALIDATION_FAILED',
+          message: expect.any(String),
+        }),
+      );
+
+      const wrongCsrf = await postAuthJson(
+        '/api/v1/auth/logout',
+        {},
+        {
+          Cookie: session.cookieHeader,
+          'X-CSRF-Token': 'not-the-session-csrf-token-value-xxxxx',
+          Origin: ALLOWED_ORIGIN,
+        },
+      );
+      expect(wrongCsrf.statusCode).toBe(403);
+      expect(wrongCsrf.body).toEqual(
+        expect.objectContaining({
+          statusCode: 403,
+          code: 'CSRF_VALIDATION_FAILED',
+          message: expect.any(String),
+        }),
+      );
     });
   });
 });

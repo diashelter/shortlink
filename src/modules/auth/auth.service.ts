@@ -24,7 +24,11 @@ import {
   AuthSecurityStorageUnavailableError,
   AuthStateService,
 } from './auth-state.service';
-import { AuthSessionService } from './auth-session.service';
+import {
+  AuthSessionService,
+  InvalidRefreshTokenError,
+  RefreshTokenReuseError,
+} from './auth-session.service';
 import { AuthAuditEventType } from './auth.types';
 import { Email } from './email.value-object';
 import { Password } from './password.value-object';
@@ -254,16 +258,35 @@ export class AuthService {
     });
   }
 
-  async refresh(_refreshToken: string): Promise<{
+  async refresh(refreshToken: string): Promise<{
     accessToken: string;
     expiresIn: number;
     refreshToken: string;
   }> {
-    throw new NotImplementedException('Auth refresh is not implemented yet.');
+    return this.withSecurityStorage(async () => {
+      try {
+        const tokens = await this.authSession.refresh(refreshToken);
+        return {
+          accessToken: tokens.accessToken,
+          expiresIn: tokens.expiresIn,
+          refreshToken: tokens.refreshToken,
+        };
+      } catch (error) {
+        if (
+          error instanceof RefreshTokenReuseError ||
+          error instanceof InvalidRefreshTokenError
+        ) {
+          throw this.sessionInvalidException();
+        }
+        throw error;
+      }
+    });
   }
 
-  async logout(_refreshToken: string): Promise<void> {
-    throw new NotImplementedException('Auth logout is not implemented yet.');
+  async logout(refreshToken: string): Promise<void> {
+    return this.withSecurityStorage(async () => {
+      await this.authSession.logout(refreshToken);
+    });
   }
 
   async requestPasswordReset(_input: EmailDto): Promise<void> {
@@ -496,6 +519,16 @@ export class AuthService {
       {
         code: 'INVALID_VERIFICATION',
         message: 'Invalid or expired verification.',
+      },
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
+
+  private sessionInvalidException(): HttpException {
+    return new HttpException(
+      {
+        code: 'SESSION_INVALID',
+        message: 'Session is invalid.',
       },
       HttpStatus.UNAUTHORIZED,
     );
