@@ -37,6 +37,7 @@ Do not overengineer. Prefer simple, explicit, maintainable solutions.
 - Never expose internal database IDs as public short codes.
 - Never treat Redis as the source of truth.
 - Never create TypeORM migrations manually.
+- Always execute project commands inside the `api` Docker Compose service. Do not run `npm` commands on the host.
 
 ---
 
@@ -82,19 +83,19 @@ Then wait a few seconds before running Docker Compose.
 
 ## Running the Application
 
-Use the scripts defined in `package.json`.
+Use the scripts defined in `package.json`, executed inside the `api` Docker Compose service.
 
 Common commands may include:
 
 ```bash
-npm run start:dev
-npm run build
-npm run lint
-npm run test
-npm run test:e2e
+docker compose exec api npm run start:dev
+docker compose exec api npm run build
+docker compose exec api npm run lint
+docker compose exec api npm run test
+docker compose exec api npm run test:e2e
 ```
 
-Use the package manager already used by the project.
+Do not run `npm` commands directly on the host. Use the package manager already used by the project from within the `api` container.
 
 Before running the app:
 
