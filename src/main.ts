@@ -10,6 +10,7 @@ import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './api-exception.filter';
 import { AppEnvironment, validateEnvironment } from './environment.validation';
+import { registerPublicLinkResolve } from './modules/links/register-public-link-resolve';
 
 const JSON_PAYLOAD_LIMIT = '100kb';
 
@@ -53,6 +54,7 @@ export function createValidationPipe(): ValidationPipe {
 export function configureApp(app: INestApplication, env: AppEnvironment): void {
   const expressApp = app as NestExpressApplication;
 
+  registerPublicLinkResolve(app);
   expressApp.setGlobalPrefix('api/v1');
   expressApp.use(cookieParser());
   expressApp.useGlobalPipes(createValidationPipe());

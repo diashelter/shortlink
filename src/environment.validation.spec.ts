@@ -30,6 +30,9 @@ const validEnv = {
   EMAIL_QUEUE_ATTEMPTS: '5',
   EMAIL_QUEUE_BACKOFF_MS: '2000',
   FRONTEND_RESET_URL: 'https://localhost:8443/reset-password',
+  PUBLIC_SHORT_URL_BASE: 'https://localhost:8443',
+  LINK_CODE_GENERATION_MAX_ATTEMPTS: '5',
+  LINK_RESOLUTION_CACHE_TTL_SECONDS: '300',
 };
 
 describe('validateEnvironment', () => {
@@ -55,6 +58,93 @@ describe('validateEnvironment', () => {
     expect(config.frontendResetUrl).toBe(
       'https://localhost:8443/reset-password',
     );
+    expect(config.publicShortUrlBase).toBe('https://localhost:8443');
+    expect(config.linkCodeGenerationMaxAttempts).toBe(5);
+    expect(config.linkResolutionCacheTtlSeconds).toBe(300);
+  });
+
+  it('normalizes PUBLIC_SHORT_URL_BASE trailing slash to origin', () => {
+    const config = validateEnvironment({
+      ...validEnv,
+      PUBLIC_SHORT_URL_BASE: 'https://localhost:8443/',
+    });
+
+    expect(config.publicShortUrlBase).toBe('https://localhost:8443');
+  });
+
+  it('defaults link code attempts and cache TTL when omitted', () => {
+    const withoutOptionalLinks = omitEnvKey(
+      omitEnvKey(validEnv, 'LINK_CODE_GENERATION_MAX_ATTEMPTS'),
+      'LINK_RESOLUTION_CACHE_TTL_SECONDS',
+    );
+
+    const config = validateEnvironment(withoutOptionalLinks);
+
+    expect(config.linkCodeGenerationMaxAttempts).toBe(5);
+    expect(config.linkResolutionCacheTtlSeconds).toBe(300);
+  });
+
+  it('fails when PUBLIC_SHORT_URL_BASE is missing', () => {
+    const withoutBase = omitEnvKey(validEnv, 'PUBLIC_SHORT_URL_BASE');
+
+    expect(() => validateEnvironment(withoutBase)).toThrow(
+      /PUBLIC_SHORT_URL_BASE/,
+    );
+  });
+
+  it('rejects non-HTTPS PUBLIC_SHORT_URL_BASE', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        PUBLIC_SHORT_URL_BASE: 'http://localhost:8443',
+      }),
+    ).toThrow(/PUBLIC_SHORT_URL_BASE/);
+  });
+
+  it('rejects PUBLIC_SHORT_URL_BASE with path, query, fragment, or credentials', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        PUBLIC_SHORT_URL_BASE: 'https://localhost:8443/short',
+      }),
+    ).toThrow(/PUBLIC_SHORT_URL_BASE/);
+
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        PUBLIC_SHORT_URL_BASE: 'https://localhost:8443?x=1',
+      }),
+    ).toThrow(/PUBLIC_SHORT_URL_BASE/);
+
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        PUBLIC_SHORT_URL_BASE: 'https://localhost:8443#frag',
+      }),
+    ).toThrow(/PUBLIC_SHORT_URL_BASE/);
+
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        PUBLIC_SHORT_URL_BASE: 'https://user:pass@localhost:8443',
+      }),
+    ).toThrow(/PUBLIC_SHORT_URL_BASE/);
+  });
+
+  it('rejects non-positive link code attempts and cache TTL', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        LINK_CODE_GENERATION_MAX_ATTEMPTS: '0',
+      }),
+    ).toThrow(/LINK_CODE_GENERATION_MAX_ATTEMPTS/);
+
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        LINK_RESOLUTION_CACHE_TTL_SECONDS: '-1',
+      }),
+    ).toThrow(/LINK_RESOLUTION_CACHE_TTL_SECONDS/);
   });
 
   it('fails when AUTH_HMAC_SECRET is missing', () => {

@@ -75,6 +75,7 @@ Consulte `.env.example` para a lista completa e placeholders. Categorias princip
 
 - **App / HTTP**: `NODE_ENV`, `PORT`, `CORS_ALLOWED_ORIGINS`, `TRUST_PROXY`, `FRONTEND_RESET_URL`
 - **Autenticação**: `JWT_ACCESS_SECRET`, `AUTH_HMAC_SECRET`, `AUTH_TOKEN_HASH_SECRET`, `REFRESH_COOKIE_NAME`
+- **Links**: `PUBLIC_SHORT_URL_BASE` (origem HTTPS sem path/query/fragment), `LINK_CODE_GENERATION_MAX_ATTEMPTS` (padrão `5`), `LINK_RESOLUTION_CACHE_TTL_SECONDS` (padrão `300`)
 - **PostgreSQL**: `POSTGRES_*`
 - **Redis**: `REDIS_HOST`, `REDIS_PORT`
 - **E-mail / fila**: `MAILPIT_*`, `MAIL_FROM`, `EMAIL_QUEUE_ATTEMPTS`, `EMAIL_QUEUE_BACKOFF_MS`
@@ -127,6 +128,19 @@ docker compose exec api npm run test -- --runInBand && \
 docker compose exec api npm run test:integration -- --runInBand && \
 docker compose exec api npm run test:e2e -- --runInBand
 ```
+
+## Links (encurtamento)
+
+- Gestão autenticada sob `/api/v1/links` (Bearer via `AuthSessionGuard`)
+- Resolução pública em `GET /{code}` com redirecionamento `302` (fora do prefixo `/api/v1`)
+- Cache Redis de resolução com TTL configurável; desativação/reativação invalidam a chave antes de mutar o PostgreSQL (`503 LINK_CACHE_UNAVAILABLE` se Redis falhar)
+- Limite: no máximo dez Links Ativos por usuário
+
+Documentação:
+
+- Spec: `.specs/features/links/spec.md`
+- Design: `.specs/features/links/design.md`
+- Tasks: `.specs/features/links/tasks.md`
 
 ## Documentação da feature de autenticação
 
