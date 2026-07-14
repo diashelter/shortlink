@@ -76,10 +76,25 @@ export class AuthService {
     });
   }
 
-  async verifyEmail(_input: VerifyEmailDto): Promise<void> {
-    throw new NotImplementedException(
-      'Auth verify-email is not implemented yet.',
-    );
+  async verifyEmail(input: VerifyEmailDto): Promise<void> {
+    const email = this.parseEmail(input.email);
+
+    return this.withSecurityStorage(async () => {
+      const account = await this.authRepository.findAccountByEmail(email.value);
+      if (!account || account.status !== AccountStatus.PENDING) {
+        throw this.invalidVerificationException();
+      }
+
+      const result = await this.authState.consumeActivationCode(
+        account.id,
+        input.code,
+      );
+      if (result.status !== 'consumed') {
+        throw this.invalidVerificationException();
+      }
+
+      await this.authRepository.activateAccount(account.id);
+    });
   }
 
   async resendEmailVerification(
@@ -275,6 +290,16 @@ export class AuthService {
         message: 'Too many requests.',
       },
       HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+
+  private invalidVerificationException(): HttpException {
+    return new HttpException(
+      {
+        code: 'INVALID_VERIFICATION',
+        message: 'Invalid or expired verification.',
+      },
+      HttpStatus.UNAUTHORIZED,
     );
   }
 }

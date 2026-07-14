@@ -65,6 +65,46 @@ async function countMailpitMessagesFor(email: string): Promise<number> {
   ).length;
 }
 
+type MailpitMessageDetail = {
+  ID: string;
+  Text?: string;
+  HTML?: string;
+  Snippet?: string;
+};
+
+async function getMailpitMessage(id: string): Promise<MailpitMessageDetail> {
+  const response = await fetch(`${MAILPIT_API}/message/${id}`);
+  if (!response.ok) {
+    throw new Error(`Mailpit message fetch failed: ${response.status}`);
+  }
+  return (await response.json()) as MailpitMessageDetail;
+}
+
+function extractSixDigitCode(text: string): string {
+  const match = text.match(/\b(\d{6})\b/);
+  if (!match) {
+    throw new Error('Activation code not found in email body');
+  }
+  return match[1];
+}
+
+async function waitForActivationCode(email: string): Promise<string> {
+  const summary = await waitForMailpitMessage(
+    (entry) =>
+      entry.To.some((to) => to.Address === email) &&
+      /activat|verif/i.test(entry.Subject),
+  );
+  const detail = await getMailpitMessage(summary.ID);
+  const body = detail.Text || detail.HTML || detail.Snippet || summary.Snippet;
+  return extractSixDigitCode(body);
+}
+
+const GENERIC_INVALID_VERIFICATION = {
+  statusCode: 401,
+  code: 'INVALID_VERIFICATION',
+  message: expect.any(String),
+};
+
 async function postAuthJson(
   path: string,
   body: unknown,
@@ -491,6 +531,120 @@ describe('Auth HTTP module (e2e)', () => {
         }),
       );
       await expect(authRepository.findAccountByEmail(email)).resolves.toBeNull();
+    });
+  });
+
+  describe('POST /api/v1/auth/verify-email', () => {
+    it('activates a pending account with a valid Mailpit code and rejects reuse', async () => {
+      const email = `verify-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.70';
+
+      const register = await postAuthJson(
+        '/api/v1/auth/register',
+        {
+          email,
+          password: VALID_PASSWORD,
+          passwordConfirmation: VALID_PASSWORD,
+        },
+        { 'X-Forwarded-For': clientIp },
+      );
+      expect(register.statusCode).toBe(202);
+
+      const code = await waitForActivationCode(email);
+
+      const verified = await postAuthJson('/api/v1/auth/verify-email', {
+        email,
+        code,
+      });
+      expect(verified.statusCode).toBe(204);
+      expect(verified.body).toBe('');
+
+      const account = await authRepository.findAccountByEmail(email);
+      expect(account).not.toBeNull();
+      expect(account!.status).toBe(AccountStatus.ACTIVE);
+
+      const reused = await postAuthJson('/api/v1/auth/verify-email', {
+        email,
+        code,
+      });
+      expect(reused.statusCode).toBe(401);
+      expect(reused.body).toEqual(
+        expect.objectContaining(GENERIC_INVALID_VERIFICATION),
+      );
+      expect((reused.body as { errors?: unknown }).errors).toBeUndefined();
+    });
+
+    it('returns the same generic error for invalid, missing, and unknown cases', async () => {
+      const email = `verify-invalid-${randomUUID()}@example.com`;
+
+      const register = await postAuthJson(
+        '/api/v1/auth/register',
+        {
+          email,
+          password: VALID_PASSWORD,
+          passwordConfirmation: VALID_PASSWORD,
+        },
+        { 'X-Forwarded-For': '198.51.100.71' },
+      );
+      expect(register.statusCode).toBe(202);
+
+      const code = await waitForActivationCode(email);
+      const wrongCode = code === '000000' ? '111111' : '000000';
+
+      const invalid = await postAuthJson('/api/v1/auth/verify-email', {
+        email,
+        code: wrongCode,
+      });
+      expect(invalid.statusCode).toBe(401);
+      expect(invalid.body).toEqual(
+        expect.objectContaining(GENERIC_INVALID_VERIFICATION),
+      );
+
+      const unknown = await postAuthJson('/api/v1/auth/verify-email', {
+        email: `missing-${randomUUID()}@example.com`,
+        code: '123456',
+      });
+      expect(unknown.statusCode).toBe(401);
+      expect(unknown.body).toEqual(
+        expect.objectContaining(GENERIC_INVALID_VERIFICATION),
+      );
+
+      await redis.del(
+        `shortlink:auth:verification:activation:${(await authRepository.findAccountByEmail(email))!.id}`,
+      );
+      const expired = await postAuthJson('/api/v1/auth/verify-email', {
+        email,
+        code,
+      });
+      expect(expired.statusCode).toBe(401);
+      expect(expired.body).toEqual(
+        expect.objectContaining(GENERIC_INVALID_VERIFICATION),
+      );
+
+      const pending = await authRepository.findAccountByEmail(email);
+      expect(pending!.status).toBe(AccountStatus.PENDING);
+    });
+
+    it('returns a generic error for already active accounts without revealing status', async () => {
+      const email = `verify-active-${randomUUID()}@example.com`;
+      const hash = await passwordHasher.hash(Password.create(VALID_PASSWORD));
+      await authRepository.createPendingAccount({
+        email,
+        passwordHash: hash.value,
+      });
+      const created = await authRepository.findAccountByEmail(email);
+      await authRepository.activateAccount(created!.id);
+
+      const response = await postAuthJson('/api/v1/auth/verify-email', {
+        email,
+        code: '123456',
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toEqual(
+        expect.objectContaining(GENERIC_INVALID_VERIFICATION),
+      );
+      expect((response.body as { errors?: unknown }).errors).toBeUndefined();
     });
   });
 });
