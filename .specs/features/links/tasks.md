@@ -3,7 +3,7 @@
 **SPEC:** `.specs/features/links/spec.md`  
 **Design:** `.specs/features/links/design.md`  
 **Matriz de testes:** `.specs/codebase/TESTING.md`  
-**Status:** Em execução
+**Status:** Concluída — gate completo aprovado
 
 ## Convenções de execução
 
@@ -300,14 +300,15 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] README e `.env.example` documentam base pública, tentativas de código e TTL do cache.
-- [ ] Matriz de testes inclui o contexto Links e a invalidação estrita de Redis.
-- [ ] SPEC e design registram estado de implementação somente com evidência dos gates.
-- [ ] Lint, build, unitários, integração e E2E passam sem testes removidos ou marcados como skip.
+- [x] README e `.env.example` documentam base pública, tentativas de código e TTL do cache.
+- [x] Matriz de testes inclui o contexto Links e a invalidação estrita de Redis.
+- [x] SPEC e design registram estado de implementação somente com evidência dos gates.
+- [x] Lint, build, unitários, integração e E2E passam sem testes removidos ou marcados como skip.
 
 **Tests:** unit, integration, e2e  
 **Gate:** `docker compose exec api npm run lint && docker compose exec api npm run build && docker compose exec api npm run test -- --runInBand && docker compose exec api npm run test:integration -- --runInBand && docker compose exec api npm run test:e2e -- --runInBand`  
-**Verify:** todos os comandos terminam com código zero dentro do serviço `api`.
+**Verify:** todos os comandos terminam com código zero dentro do serviço `api`.  
+**Status:** ✅ Complete
 
 ## Mapa de execução
 

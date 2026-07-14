@@ -1,7 +1,7 @@
 # Matriz de testes
 
-**Status**: Definida para a feature de autenticação  
-**Atualizada em**: 2026-07-13
+**Status**: Atualizada para autenticação e Links  
+**Atualizada em**: 2026-07-14
 
 ## Ambiente obrigatório
 
@@ -10,6 +10,8 @@ Todos os comandos executam dentro do serviço `api`. Antes de testes de integra�
 ```bash
 docker compose up --detach
 ```
+
+Inclua `queue-worker` para fluxos que dependem de e-mail. Se o Nginx retornar `502` após recriar a API, recarregue-o (`docker compose exec nginx nginx -s reload` ou `docker compose restart nginx`).
 
 ## Camadas e comandos
 
@@ -20,8 +22,14 @@ docker compose up --detach
 | E2E | Contratos HTTP, cookies HTTPS, CORS/CSRF, Mailpit e fluxos P1 | `test/e2e/**/*.e2e-spec.ts` | `docker compose exec api npm run test:e2e -- --runInBand` |
 | Qualidade | Tipagem, lint e build | Repositório | `docker compose exec api npm run lint && docker compose exec api npm run build` |
 
-`test:integration` será adicionado ao `package.json` durante a implementação da autenticação. A configuração de cada suíte deve isolar seu banco, chaves Redis e caixa de e-mail para evitar interferência entre casos.
+A configuração de cada suíte deve isolar seu banco, chaves Redis e caixa de e-mail para evitar interferência entre casos.
 
+## Cobertura por contexto
+
+| Contexto | Unitário | Integração | E2E |
+| --- | --- | --- | --- |
+| Auth | Value Objects, crypto, sessão, guards | Repositório, Redis auth state, abuso, e-mail | Registro, login, refresh, CSRF, limites |
+| Links | `DestinationUrl`, gerador de código, `LinksService` (cache hit/miss, invalidação estrita) | Entidade/migration, repositório transacional, cache Redis de resolução | Gestão autenticada, isolamento, limite, `GET /{code}` com 302/404 e HTTPS |
 ## Gate checks
 
 | Gate | Comando | Quando usar |
@@ -45,3 +53,4 @@ docker compose up --detach
 - Toda falha deve ser reproduzível sem `sleep` arbitrário.
 - E2E HTTPS deve confiar na CA local; não pode desabilitar a validação TLS.
 - Credenciais, códigos e tokens não podem aparecer em snapshots, mensagens de falha ou logs de testes.
+- Em Links, falha de `invalidate` no Redis deve impedir mutação de estado (coberta em unitário de `LinksService` e E2E de desativação).
