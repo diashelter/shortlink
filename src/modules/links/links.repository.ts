@@ -28,4 +28,6 @@ export abstract class LinksRepository {
   abstract findActiveByShortCode(
     shortCode: string,
   ): Promise<LinkRecord | null>;
+
+  abstract findById(linkId: string): Promise<LinkRecord | null>;
 }

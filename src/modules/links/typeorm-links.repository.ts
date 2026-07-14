@@ -160,6 +160,14 @@ export class TypeormLinksRepository extends LinksRepository {
     return link ? this.toRecord(link) : null;
   }
 
+  async findById(linkId: string): Promise<LinkRecord | null> {
+    const link = await this.dataSource.getRepository(LinkEntity).findOne({
+      where: { id: linkId },
+    });
+
+    return link ? this.toRecord(link) : null;
+  }
+
   private async lockAccount(
     manager: EntityManager,
     userId: string,

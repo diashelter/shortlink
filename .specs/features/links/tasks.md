@@ -214,16 +214,17 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] Criação repete a transação inteira somente para colisão global de código e respeita o máximo configurado.
-- [ ] Criação compõe URL Curta exclusivamente pela base validada.
-- [ ] Resolução usa cache hit, fallback ao PostgreSQL em cache miss/falha e preenche cache após leitura autoritativa.
-- [ ] Desativação e reativação invalidam Redis antes de chamar o repositório; falha de invalidação resulta em `503 LINK_CACHE_UNAVAILABLE` sem mutação.
-- [ ] Resultados de propriedade, inexistência, limite e código esgotado são traduzidos nos códigos HTTP do design.
-- [ ] Testes unitários cobrem todos os ramos, especialmente fallback de resolução e invalidação estrita.
+- [x] Criação repete a transação inteira somente para colisão global de código e respeita o máximo configurado.
+- [x] Criação compõe URL Curta exclusivamente pela base validada.
+- [x] Resolução usa cache hit, fallback ao PostgreSQL em cache miss/falha e preenche cache após leitura autoritativa.
+- [x] Desativação e reativação invalidam Redis antes de chamar o repositório; falha de invalidação resulta em `503 LINK_CACHE_UNAVAILABLE` sem mutação.
+- [x] Resultados de propriedade, inexistência, limite e código esgotado são traduzidos nos códigos HTTP do design.
+- [x] Testes unitários cobrem todos os ramos, especialmente fallback de resolução e invalidação estrita.
 
 **Tests:** unit  
 **Gate:** `docker compose exec api npm run test -- --runInBand`  
-**Verify:** mocks comprovam que o repositório não é chamado para transição de estado após falha de `invalidate`.
+**Verify:** mocks comprovam que o repositório não é chamado para transição de estado após falha de `invalidate`.  
+**Status:** ✅ Complete
 
 ---
 
