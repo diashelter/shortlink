@@ -41,6 +41,21 @@ Do not overengineer. Prefer simple, explicit, maintainable solutions.
 
 ---
 
+## Arquitetura e organização de código
+
+- Organize o sistema como monólito modular por bounded contexts do DDD; cada contexto contém seu domínio, casos de uso, interfaces e implementações concretas.
+- Prefira a estrutura de arquivos mais flat possível dentro de cada contexto. Não crie diretórios apenas para espelhar camadas; introduza-os somente quando houver outro bounded context ou a quantidade de arquivos prejudicar a navegação.
+- Aplique arquitetura hexagonal por dependências: controllers, guards e consumers recebem entradas; banco, Redis, filas, SMTP e integrações externas são implementações externas.
+- Casos de uso e domínio dependem de interfaces definidas pelo próprio contexto, nunca de TypeORM, Redis, BullMQ, HTTP ou SMTP diretamente.
+- Use interfaces pequenas, orientadas a uma capacidade do domínio, e conecte implementações concretas somente no módulo NestJS.
+- Não use `port` ou `adapter` nos nomes de arquivos ou classes. Use nomes do papel que exercem, como `auth.repository.ts`, `typeorm-auth.repository.ts`, `auth-email.service.ts` e `queue-auth-email.service.ts`.
+- Use Value Objects imutáveis para valores com invariantes de domínio, como `Email`, `Password` e `PasswordHash`; evite primitive obsession.
+- Preserve SOLID: uma responsabilidade por classe, controllers finos, inversão de dependência nas fronteiras e abstrações somente quando houver dependência variável ou regra de domínio.
+- Aplique Object Calisthenics pragmaticamente: mantenha métodos em um nível de abstração, use retornos antecipados para reduzir aninhamento e dê nomes que expressem intenção. Não crie wrappers ou classes sem valor de domínio comprovado.
+- Não permita que entidades de persistência, DTOs HTTP ou tipos de bibliotecas externas vazem para o domínio ou através de interfaces.
+
+---
+
 ## Context7 MCP
 
 Always use Context7 when code generation, setup, configuration, or library/API documentation is needed.
