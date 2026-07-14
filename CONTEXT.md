@@ -57,3 +57,33 @@ _Evitar_: JWT de acesso, código de verificação
 **Bloqueio Temporário**:
 Estado de segurança que impede novas tentativas de Login por uma hora após cinco falhas, somando falhas de senha e de Código de Verificação.
 _Evitar_: Desativação de conta, banimento
+
+## Links
+
+**Link**:
+Recurso criado por um Usuário que associa uma URL de Destino a um Código Encurtado globalmente único.
+_Evitar_: URL curta, link original, redirecionamento
+
+**URL de Destino**:
+Endereço web absoluto HTTP ou HTTPS, sem credenciais embutidas, para o qual um Link direciona quem acessa sua URL Curta.
+_Evitar_: Link original, URL encurtada
+
+**Código Encurtado**:
+Identificador público alfanumérico de seis caracteres em maiúsculas, globalmente único, que compõe a URL Curta de um Link.
+_Evitar_: ID interno, UUID do Usuário, código criptografado
+
+**URL Curta**:
+URL pública composta pelo domínio da plataforma e pelo Código Encurtado, acessível sem autenticação.
+_Evitar_: URL de Destino, link original
+
+**Link Ativo**:
+Link que conta para o limite de dez Links de seu Usuário e pode redirecionar para sua URL de Destino.
+_Evitar_: Link criado, histórico de Links
+
+**Link Desativado**:
+Link que não redireciona e não conta para o limite de dez Links Ativos de seu Usuário, mas preserva sua identidade e pode ser reativado.
+_Evitar_: Link excluído, Link removido
+
+**Reativação de Link**:
+Retorno de um Link Desativado ao estado de Link Ativo, condicionado à disponibilidade no limite de dez Links Ativos do seu Usuário.
+_Evitar_: Recriação de Link, restauração de URL
