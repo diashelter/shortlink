@@ -3,10 +3,11 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database.module';
 import { MailModule } from './mail.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { RedisModule } from './redis.module';
 
 @Module({
-  imports: [DatabaseModule, RedisModule, MailModule],
+  imports: [DatabaseModule, RedisModule, MailModule, AuthModule],
   controllers: [AppController],
   providers: [AppService],
 })
