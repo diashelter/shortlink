@@ -181,10 +181,12 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Tools:** MCP: NONE; Skill: codenavi
 
 **Done when:**
-- [ ] `302` não aguarda a Promise do collector.
-- [ ] Bots conhecidos redirecionam sem enfileirar.
-- [ ] Falha do collector é sanitizada e não muda `302`.
-- [ ] Código inválido/inexistente/desativado não produz evento.
+- [x] `302` não aguarda a Promise do collector.
+- [x] Bots conhecidos redirecionam sem enfileirar.
+- [x] Falha do collector é sanitizada e não muda `302`.
+- [x] Código inválido/inexistente/desativado não produz evento.
+
+**Status:** ✅ Complete
 
 **Tests:** e2e  
 **Gate:** `docker compose exec api npm run test:e2e -- --runInBand`  

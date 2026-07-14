@@ -1,5 +1,5 @@
 import { isIP, isIPv4, isIPv6 } from 'net';
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { validateEnvironment } from '../../environment.validation';
 import {
   CountryCode,
@@ -16,7 +16,10 @@ type CountryLookupReader = {
 };
 
 @Injectable()
-export class LocalCountryResolver extends CountryResolver {
+export class LocalCountryResolver
+  extends CountryResolver
+  implements OnModuleInit
+{
   private reader: CountryLookupReader | null | undefined = undefined;
   private readonly dbPath: string | undefined;
   private openPromise: Promise<void> | undefined;
@@ -29,6 +32,10 @@ export class LocalCountryResolver extends CountryResolver {
     } else {
       this.dbPath = dbPath ?? undefined;
     }
+  }
+
+  async onModuleInit(): Promise<void> {
+    await this.whenReady();
   }
 
   whenReady(): Promise<void> {
