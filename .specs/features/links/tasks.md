@@ -243,15 +243,16 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] As quatro rotas de gestão estão sob `/api/v1/links` e usam `AuthSessionGuard`.
-- [ ] DTOs aceitam somente campos e enumerações previstas, usando o pipe global para `422`.
-- [ ] A resposta de criação usa `201` para novo Link e `200` para Link existente ou reativado.
-- [ ] Listagem expõe `{ items, meta }` com paginação, filtro e ordenação definidos.
-- [ ] E2E cobre autorização, isolamento entre Usuários, erros de validação, limite, idempotência e ciclo de vida.
+- [x] As quatro rotas de gestão estão sob `/api/v1/links` e usam `AuthSessionGuard`.
+- [x] DTOs aceitam somente campos e enumerações previstas, usando o pipe global para `422`.
+- [x] A resposta de criação usa `201` para novo Link e `200` para Link existente ou reativado.
+- [x] Listagem expõe `{ items, meta }` com paginação, filtro e ordenação definidos.
+- [x] E2E cobre autorização, isolamento entre Usuários, erros de validação, limite, idempotência e ciclo de vida.
 
 **Tests:** e2e  
 **Gate:** `docker compose exec api npm run test:e2e -- --runInBand`  
-**Verify:** um Usuário autenticado não consegue listar nem mudar o estado de Link pertencente a outro Usuário.
+**Verify:** um Usuário autenticado não consegue listar nem mudar o estado de Link pertencente a outro Usuário.  
+**Status:** ✅ Complete
 
 ---
 

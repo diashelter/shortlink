@@ -9,13 +9,9 @@ const KEY_PREFIX = 'shortlink:links:resolution:';
 export class RedisLinkResolutionCache extends LinkResolutionCache {
   private readonly ttlSeconds: number;
 
-  constructor(
-    private readonly redis: RedisService,
-    ttlSeconds?: number,
-  ) {
+  constructor(private readonly redis: RedisService) {
     super();
-    this.ttlSeconds =
-      ttlSeconds ?? validateEnvironment().linkResolutionCacheTtlSeconds;
+    this.ttlSeconds = validateEnvironment().linkResolutionCacheTtlSeconds;
   }
 
   async get(shortCode: string): Promise<string | null> {
