@@ -28,6 +28,7 @@ export type AppEnvironment = {
     attempts: number;
     backoffMs: number;
   };
+  frontendResetUrl: string;
 };
 
 function required(env: NodeJS.Dict<string>, key: string): string {
@@ -140,5 +141,6 @@ export function validateEnvironment(
         'EMAIL_QUEUE_BACKOFF_MS',
       ),
     },
+    frontendResetUrl: required(env, 'FRONTEND_RESET_URL'),
   };
 }

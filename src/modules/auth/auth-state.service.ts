@@ -74,6 +74,10 @@ export abstract class AuthStateService {
     expiresAt: Date,
   ): Promise<void>;
 
+  abstract findLoginChallengeUserId(
+    challengeId: string,
+  ): Promise<string | null>;
+
   abstract consumeLoginChallenge(
     challengeId: string,
     code: string,

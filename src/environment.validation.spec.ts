@@ -20,6 +20,7 @@ const validEnv = {
   MAIL_FROM: 'noreply@shortlink.local',
   EMAIL_QUEUE_ATTEMPTS: '5',
   EMAIL_QUEUE_BACKOFF_MS: '2000',
+  FRONTEND_RESET_URL: 'https://localhost:8443/reset-password',
 };
 
 describe('validateEnvironment', () => {
@@ -42,6 +43,9 @@ describe('validateEnvironment', () => {
     expect(config.mailpit.host).toBe('mailpit');
     expect(config.mail.from).toBe('noreply@shortlink.local');
     expect(config.emailQueue).toEqual({ attempts: 5, backoffMs: 2000 });
+    expect(config.frontendResetUrl).toBe(
+      'https://localhost:8443/reset-password',
+    );
   });
 
   it('fails when AUTH_HMAC_SECRET is missing', () => {

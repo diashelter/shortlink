@@ -221,6 +221,28 @@ export class RedisAuthStateService extends AuthStateService {
     );
   }
 
+  async findLoginChallengeUserId(
+    challengeId: string,
+  ): Promise<string | null> {
+    const raw = await this.safe(() =>
+      this.redis.get(this.loginChallengeKey(challengeId)),
+    );
+    if (raw === null) {
+      return null;
+    }
+
+    const payload = JSON.parse(raw) as LoginChallengePayload;
+    if (!payload.userId || payload.used) {
+      return null;
+    }
+
+    if (payload.expiresAtMs && Date.now() > payload.expiresAtMs) {
+      return null;
+    }
+
+    return payload.userId;
+  }
+
   async consumeLoginChallenge(
     challengeId: string,
     code: string,

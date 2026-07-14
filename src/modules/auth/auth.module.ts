@@ -8,6 +8,7 @@ import { AuthAuditEventEntity } from './auth-audit-event.entity';
 import { AuthAuditService } from './auth-audit.service';
 import { AuthController } from './auth.controller';
 import { AuthCryptoService } from './auth-crypto.service';
+import { AuthEmailService } from './auth-email.service';
 import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { AuthSessionEntity } from './auth-session.entity';
@@ -20,6 +21,7 @@ import { CsrfOriginGuard } from './csrf-origin.guard';
 import { NodeAuthCryptoService } from './node-auth-crypto.service';
 import { PasswordHasherService } from './password-hasher.service';
 import { PasswordResetTokenEntity } from './password-reset-token.entity';
+import { QueueAuthEmailService } from './queue-auth-email.service';
 import { RedisAuthStateService } from './redis-auth-state.service';
 import { SessionRefreshTokenEntity } from './session-refresh-token.entity';
 import { TypeormAuthAuditService } from './typeorm-auth-audit.service';
@@ -47,6 +49,11 @@ const testControllers: Type<unknown>[] =
     AuthSessionService,
     AuthSessionGuard,
     CsrfOriginGuard,
+    QueueAuthEmailService,
+    {
+      provide: AuthEmailService,
+      useExisting: QueueAuthEmailService,
+    },
     {
       provide: AuthRepository,
       useClass: TypeormAuthRepository,
@@ -76,6 +83,14 @@ const testControllers: Type<unknown>[] =
       },
     },
   ],
-  exports: [AuthSessionGuard, AuthSessionService, AuthCryptoService],
+  exports: [
+    AuthSessionGuard,
+    AuthSessionService,
+    AuthCryptoService,
+    AuthStateService,
+    AuthRepository,
+    AuthEmailService,
+    TypeOrmModule,
+  ],
 })
 export class AuthModule {}

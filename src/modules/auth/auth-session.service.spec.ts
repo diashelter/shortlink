@@ -75,6 +75,7 @@ describe('AuthSessionService', () => {
       setIssuance: jest.fn(),
       isCurrentIssuance: jest.fn(),
       createLoginChallenge: jest.fn(),
+      findLoginChallengeUserId: jest.fn(),
       consumeLoginChallenge: jest.fn(),
       setResendCooldown: jest.fn(),
       isResendCooldownActive: jest.fn(),
