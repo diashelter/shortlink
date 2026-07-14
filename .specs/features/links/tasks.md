@@ -103,14 +103,15 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] A interface não expõe detalhes de `node:crypto`.
-- [ ] A implementação gera exatamente seis caracteres de `A-Z0-9`.
-- [ ] A implementação usa fonte criptograficamente segura.
-- [ ] Testes verificam formato, tamanho e rejeitam dependência de geração previsível.
+- [x] A interface não expõe detalhes de `node:crypto`.
+- [x] A implementação gera exatamente seis caracteres de `A-Z0-9`.
+- [x] A implementação usa fonte criptograficamente segura.
+- [x] Testes verificam formato, tamanho e rejeitam dependência de geração previsível.
 
 **Tests:** unit  
 **Gate:** `docker compose exec api npm run test -- --runInBand`  
-**Verify:** todos os valores gerados atendem a `/^[A-Z0-9]{6}$/`.
+**Verify:** todos os valores gerados atendem a `/^[A-Z0-9]{6}$/`.  
+**Status:** ✅ Complete
 
 ---
 
