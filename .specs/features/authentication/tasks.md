@@ -459,7 +459,7 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 → T11
 - [x] Critérios de sucesso da SPEC são marcados somente com evidência dos gates.
 - [x] O resultado de cada tarefa é registrado neste arquivo sem apagar histórico.
 
-**Resultado**: ✅ Complete — commit `1da3d88`. Gate completo: lint OK, build OK, unit 11 suites / 75 tests, integration 9 suites / 43 tests, e2e 2 suites / 29 tests (`--runInBand`). Nginx reiniciado antes do E2E quando necessário (502). README e `.env.example` atualizados; critérios da SPEC marcados com evidência do gate.
+**Resultado**: ✅ Complete — commit `2c4e90d`. Gate completo: lint OK, build OK, unit 11 suites / 75 tests, integration 9 suites / 43 tests, e2e 2 suites / 29 tests (`--runInBand`). Nginx reiniciado antes do E2E quando necessário (502). README e `.env.example` atualizados; critérios da SPEC marcados com evidência do gate.
 
 ## Verificação pré-aprovação
 
