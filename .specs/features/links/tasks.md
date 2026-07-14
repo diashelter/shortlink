@@ -130,15 +130,16 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] A chave segue o prefixo `shortlink:links:resolution:{shortCode}`.
-- [ ] O cache grava somente URL de Destino canônica e aplica TTL nativo configurado.
-- [ ] Leitura ausente retorna `null` e invalidação remove a chave.
-- [ ] Falhas de Redis são propagadas ao chamador para que o serviço escolha fallback ou bloqueio de mutação.
-- [ ] Testes de integração cobrem set/get, TTL, invalidação e indisponibilidade.
+- [x] A chave segue o prefixo `shortlink:links:resolution:{shortCode}`.
+- [x] O cache grava somente URL de Destino canônica e aplica TTL nativo configurado.
+- [x] Leitura ausente retorna `null` e invalidação remove a chave.
+- [x] Falhas de Redis são propagadas ao chamador para que o serviço escolha fallback ou bloqueio de mutação.
+- [x] Testes de integração cobrem set/get, TTL, invalidação e indisponibilidade.
 
 **Tests:** integration  
 **Gate:** `docker compose exec api npm run test:integration -- --runInBand`  
-**Verify:** o Redis do Compose contém a chave esperada, respeita TTL e não a retorna após invalidação.
+**Verify:** o Redis do Compose contém a chave esperada, respeita TTL e não a retorna após invalidação.  
+**Status:** ✅ Complete
 
 ---
 
