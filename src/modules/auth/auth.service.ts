@@ -2,6 +2,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
@@ -49,6 +50,8 @@ const LOGIN_RATE_OPERATION = 'login';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly authState: AuthStateService,
@@ -154,7 +157,10 @@ export class AuthService {
 
       if (!account || !passwordMatches) {
         if (account) {
-          await this.recordFailedLogin(account.id);
+          const failure = await this.recordFailedLogin(account.id);
+          if (failure.locked) {
+            throw this.accountTemporarilyLockedException();
+          }
         }
         throw this.invalidCredentialsException();
       }
@@ -465,6 +471,9 @@ export class AuthService {
         throw error;
       }
       if (error instanceof AuthSecurityStorageUnavailableError) {
+        this.logger.warn(
+          'Auth security storage unavailable; refusing abuse-sensitive operation',
+        );
         throw new HttpException(
           {
             code: 'AUTH_SECURITY_STORAGE_UNAVAILABLE',

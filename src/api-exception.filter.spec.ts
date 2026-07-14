@@ -93,4 +93,33 @@ describe('ApiExceptionFilter', () => {
     const body = json.mock.calls[0][0] as Record<string, unknown>;
     expect(JSON.stringify(body)).not.toContain('super-secret');
   });
+
+  it('sets Retry-After for ACCOUNT_TEMPORARILY_LOCKED without leaking retryAfter in the body', () => {
+    const setHeader = jest.fn();
+    host = {
+      switchToHttp: () => ({
+        getResponse: () => ({ status, json, setHeader }),
+        getRequest: () => ({}),
+      }),
+    } as ArgumentsHost;
+
+    filter.catch(
+      new HttpException(
+        {
+          code: 'ACCOUNT_TEMPORARILY_LOCKED',
+          message: 'Account is temporarily locked.',
+          retryAfter: 3600,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      ),
+      host,
+    );
+
+    expect(setHeader).toHaveBeenCalledWith('Retry-After', '3600');
+    expect(json).toHaveBeenCalledWith({
+      statusCode: 429,
+      code: 'ACCOUNT_TEMPORARILY_LOCKED',
+      message: 'Account is temporarily locked.',
+    });
+  });
 });

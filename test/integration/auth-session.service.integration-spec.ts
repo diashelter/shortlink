@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import Redis from 'ioredis';
 import { DataSource } from 'typeorm';
 import { buildDataSourceOptions } from '../../src/data-source';
 import { validateEnvironment } from '../../src/environment.validation';
@@ -119,6 +120,66 @@ describe('AuthSessionService (integration)', () => {
     expect(repopulated?.active).toBe(true);
     expect(repopulated?.userId).toBe(account.id);
   });
+
+  it('validates sessions via PostgreSQL when Redis is unavailable', async () => {
+    const account = await createActiveAccount('session-redis-down@example.com');
+    const issued = await service.createSessionAfterLogin(
+      account.id,
+      AccountRole.USER,
+    );
+
+    const env = validateEnvironment();
+    const unreachable = new Redis({
+      host: env.redis.host,
+      port: 1,
+      connectTimeout: 200,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+      retryStrategy: () => null,
+      lazyConnect: true,
+    });
+    unreachable.on('error', () => undefined);
+
+    const brokenRedis = {
+      getClient: () => unreachable,
+      get: (key: string) => unreachable.get(key),
+      set: (key: string, value: string, ttlSeconds?: number) =>
+        ttlSeconds !== undefined
+          ? unreachable.set(key, value, 'EX', ttlSeconds)
+          : unreachable.set(key, value),
+      del: (key: string) => unreachable.del(key),
+      ttl: (key: string) => unreachable.ttl(key),
+      eval: (
+        script: string,
+        numKeys: number,
+        ...args: (string | number)[]
+      ) => unreachable.eval(script, numKeys, ...args),
+      exists: (key: string) => unreachable.exists(key),
+      incr: (key: string) => unreachable.incr(key),
+      expire: (key: string, seconds: number) => unreachable.expire(key, seconds),
+    } as unknown as RedisService;
+
+    const brokenState = new RedisAuthStateService(
+      brokenRedis,
+      'integration-session-fallback-hmac',
+    );
+    const serviceWithBrokenRedis = new AuthSessionService(
+      repository,
+      brokenState,
+      crypto,
+    );
+
+    const principal = await serviceWithBrokenRedis.validateSession(
+      issued.sessionId,
+    );
+    expect(principal).toEqual({
+      userId: account.id,
+      role: AccountRole.USER,
+      sessionId: issued.sessionId,
+    });
+
+    unreachable.disconnect();
+  }, 10_000);
 
   it('rotates refresh tokens and rejects immediate reuse by revoking the session', async () => {
     const account = await createActiveAccount('session-refresh@example.com');

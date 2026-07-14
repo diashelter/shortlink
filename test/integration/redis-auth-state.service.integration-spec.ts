@@ -292,6 +292,7 @@ describe('RedisAuthStateService (integration)', () => {
       retryStrategy: () => null,
       lazyConnect: true,
     });
+    unreachable.on('error', () => undefined);
 
     const brokenRedis = {
       getClient: () => unreachable,
@@ -327,6 +328,6 @@ describe('RedisAuthStateService (integration)', () => {
       AuthSecurityStorageUnavailableError,
     );
 
-    await unreachable.quit().catch(() => undefined);
+    unreachable.disconnect();
   }, 10_000);
 });

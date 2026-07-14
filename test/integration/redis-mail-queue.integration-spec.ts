@@ -80,6 +80,11 @@ describe('Redis, BullMQ and SMTP (integration)', () => {
     const bullKeys = await redisClient.keys(`bull:${AUTH_EMAIL_QUEUE}:*`);
     expect(bullKeys.length).toBeGreaterThan(0);
 
-    await stored?.remove();
+    try {
+      await stored?.remove();
+    } catch {
+      // Worker may lock the probe job; force-clear leftovers for isolation.
+      await authEmailQueue.obliterate({ force: true });
+    }
   });
 });

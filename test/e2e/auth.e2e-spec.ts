@@ -1247,4 +1247,174 @@ describe('Auth HTTP module (e2e)', () => {
       );
     });
   });
+
+  describe('abuse protection, CORS, and secret scrubbing', () => {
+    it('locks the account after five password failures with 429 and Retry-After 3600', async () => {
+      const email = `lock-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.70';
+      await registerAndActivate(email, clientIp);
+
+      const wrongPassword = 'WrongPass1!';
+      for (let attempt = 1; attempt <= 4; attempt += 1) {
+        const failed = await postAuthJson(
+          '/api/v1/auth/login',
+          { email, password: wrongPassword },
+          { 'X-Forwarded-For': clientIp },
+        );
+        expect(failed.statusCode).toBe(401);
+        expect(failed.body).toEqual(
+          expect.objectContaining({
+            statusCode: 401,
+            code: 'INVALID_CREDENTIALS',
+          }),
+        );
+      }
+
+      const locked = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: wrongPassword },
+        { 'X-Forwarded-For': clientIp },
+      );
+
+      expect(locked.statusCode).toBe(429);
+      expect(locked.headers['retry-after']).toBe('3600');
+      expect(locked.body).toEqual(
+        expect.objectContaining({
+          statusCode: 429,
+          code: 'ACCOUNT_TEMPORARILY_LOCKED',
+          message: expect.any(String),
+        }),
+      );
+      expect(JSON.stringify(locked.body)).not.toContain('retryAfter');
+
+      const stillLocked = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: VALID_PASSWORD },
+        { 'X-Forwarded-For': clientIp },
+      );
+      expect(stillLocked.statusCode).toBe(429);
+      expect(stillLocked.headers['retry-after']).toBe('3600');
+      expect(stillLocked.body).toEqual(
+        expect.objectContaining({
+          code: 'ACCOUNT_TEMPORARILY_LOCKED',
+        }),
+      );
+
+      const account = await authRepository.findAccountByEmail(email);
+      const auditRows = (await dataSource.query(
+        'SELECT type, metadata FROM "auth_audit_events" WHERE "userId" = $1',
+        [account!.id],
+      )) as Array<{ type: string; metadata: Record<string, unknown> | null }>;
+
+      expect(auditRows.some((row) => row.type === 'LOGIN_LOCKED')).toBe(true);
+      const serialized = JSON.stringify(auditRows);
+      expect(serialized).not.toContain(wrongPassword);
+      expect(serialized).not.toContain(VALID_PASSWORD);
+      expect(serialized).not.toContain(email);
+    });
+
+    it('rate-limits login by IP and email after 10 requests in 15 minutes', async () => {
+      const email = `login-rate-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.71';
+
+      for (let index = 0; index < 10; index += 1) {
+        const response = await postAuthJson(
+          '/api/v1/auth/login',
+          { email, password: 'WrongPass1!' },
+          { 'X-Forwarded-For': clientIp },
+        );
+        expect([401, 429]).toContain(response.statusCode);
+      }
+
+      const blocked = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: 'WrongPass1!' },
+        { 'X-Forwarded-For': clientIp },
+      );
+      expect(blocked.statusCode).toBe(429);
+      expect(blocked.body).toEqual(
+        expect.objectContaining({
+          statusCode: 429,
+          code: 'RATE_LIMITED',
+        }),
+      );
+    });
+
+    it('rate-limits forgot-password by email after 3 requests per hour', async () => {
+      const email = `forgot-rate-${randomUUID()}@example.com`;
+      const clientIpBase = '198.51.100.';
+
+      for (let index = 0; index < 3; index += 1) {
+        const response = await postAuthJson(
+          '/api/v1/auth/forgot-password',
+          { email },
+          { 'X-Forwarded-For': `${clientIpBase}${80 + index}` },
+        );
+        expect(response.statusCode).toBe(202);
+      }
+
+      const blocked = await postAuthJson(
+        '/api/v1/auth/forgot-password',
+        { email },
+        { 'X-Forwarded-For': '198.51.100.90' },
+      );
+      expect(blocked.statusCode).toBe(429);
+      expect(blocked.body).toEqual(
+        expect.objectContaining({
+          statusCode: 429,
+          code: 'RATE_LIMITED',
+        }),
+      );
+    });
+
+    it('rejects CORS preflight from a disallowed origin and allows the configured origin', async () => {
+      const denied = await request(app.getHttpServer())
+        .options('/api/v1/auth/refresh')
+        .set('Origin', 'https://evil.example')
+        .set('Access-Control-Request-Method', 'POST')
+        .set('Access-Control-Request-Headers', 'x-csrf-token');
+
+      expect(denied.headers['access-control-allow-origin']).toBeUndefined();
+
+      const allowed = await request(app.getHttpServer())
+        .options('/api/v1/auth/refresh')
+        .set('Origin', ALLOWED_ORIGIN)
+        .set('Access-Control-Request-Method', 'POST')
+        .set('Access-Control-Request-Headers', 'x-csrf-token');
+
+      expect(allowed.headers['access-control-allow-origin']).toBe(
+        ALLOWED_ORIGIN,
+      );
+      expect(allowed.headers['access-control-allow-credentials']).toBe('true');
+    });
+
+    it('keeps CSRF rejection for disallowed Origin on refresh', async () => {
+      const email = `cors-csrf-${randomUUID()}@example.com`;
+      await registerAndActivate(email, '198.51.100.91');
+      const session = await completeLoginSession(email, '198.51.100.92');
+
+      const wrongOrigin = await postAuthJson(
+        '/api/v1/auth/refresh',
+        {},
+        {
+          Cookie: session.cookieHeader,
+          'X-CSRF-Token': session.csrfToken,
+          Origin: 'https://evil.example',
+        },
+      );
+
+      expect(wrongOrigin.statusCode).toBe(403);
+      expect(wrongOrigin.body).toEqual(
+        expect.objectContaining({
+          code: 'CSRF_VALIDATION_FAILED',
+        }),
+      );
+      expect(JSON.stringify(wrongOrigin.body)).not.toContain(
+        session.accessToken,
+      );
+      expect(JSON.stringify(wrongOrigin.body)).not.toContain(
+        session.csrfToken,
+      );
+    });
+  });
 });
