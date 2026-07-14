@@ -15,6 +15,7 @@ import {
   VerifyLoginDto,
 } from './auth.dto';
 import { AccountStatus } from './account-status.enum';
+import { AuthAuditService } from './auth-audit.service';
 import { AuthCryptoService } from './auth-crypto.service';
 import { AuthEmailService } from './auth-email.service';
 import { AuthRepository } from './auth.repository';
@@ -23,16 +24,24 @@ import {
   AuthSecurityStorageUnavailableError,
   AuthStateService,
 } from './auth-state.service';
+import { AuthSessionService } from './auth-session.service';
+import { AuthAuditEventType } from './auth.types';
 import { Email } from './email.value-object';
 import { Password } from './password.value-object';
+import { PasswordHash } from './password-hash.value-object';
 import { PasswordHasherService } from './password-hasher.service';
 
 const RATE_LIMIT_TTL_SECONDS = 3600;
+const LOGIN_RATE_LIMIT_TTL_SECONDS = 15 * 60;
 const EMAIL_RATE_LIMIT = 3;
 const IP_RATE_LIMIT = 10;
+const LOGIN_RATE_LIMIT = 10;
+const LOGIN_CHALLENGE_TTL_MS = 60 * 60 * 1000;
+const LOGIN_LOCK_RETRY_AFTER_SECONDS = 3600;
 const ACTIVATION_RESEND_PURPOSE = 'activation';
 const REGISTER_RATE_OPERATION = 'register';
 const RESEND_RATE_OPERATION = 'resend-email-verification';
+const LOGIN_RATE_OPERATION = 'login';
 
 @Injectable()
 export class AuthService {
@@ -42,6 +51,8 @@ export class AuthService {
     private readonly authEmail: AuthEmailService,
     private readonly passwordHasher: PasswordHasherService,
     private readonly authCrypto: AuthCryptoService,
+    private readonly authSession: AuthSessionService,
+    private readonly authAudit: AuthAuditService,
   ) {}
 
   async register(input: RegisterDto, clientIp: string): Promise<void> {
@@ -119,22 +130,128 @@ export class AuthService {
     });
   }
 
-  async startLogin(_input: LoginDto): Promise<{
+  async startLogin(
+    input: LoginDto,
+    clientIp: string,
+  ): Promise<{
     challengeId: string;
     expiresAt: string;
   }> {
-    throw new NotImplementedException('Auth login is not implemented yet.');
+    const email = this.parseEmail(input.email);
+
+    await this.assertLoginRateLimit(email.value, clientIp);
+
+    return this.withSecurityStorage(async () => {
+      const account = await this.authRepository.findAccountByEmail(email.value);
+      const passwordMatches = await this.passwordMatchesAccount(
+        input.password,
+        account?.passwordHash,
+      );
+
+      if (!account || !passwordMatches) {
+        if (account) {
+          await this.recordFailedLogin(account.id);
+        }
+        throw this.invalidCredentialsException();
+      }
+
+      if (account.status === AccountStatus.PENDING) {
+        throw this.emailNotVerifiedException();
+      }
+
+      if (await this.authState.isLoginLocked(account.id)) {
+        throw this.accountTemporarilyLockedException();
+      }
+
+      const challengeId = this.authCrypto.generateChallengeId();
+      const issuanceId = this.authCrypto.generateChallengeId();
+      const expiresAt = new Date(Date.now() + LOGIN_CHALLENGE_TTL_MS);
+      const placeholderCode = this.authCrypto.generateVerificationCode();
+
+      await this.authState.createLoginChallenge(
+        account.id,
+        challengeId,
+        placeholderCode,
+        expiresAt,
+      );
+      await this.authState.setIssuance(
+        AuthIssuancePurpose.LOGIN,
+        challengeId,
+        issuanceId,
+      );
+      await this.authEmail.enqueueVerificationCode({
+        purpose: AuthIssuancePurpose.LOGIN,
+        challengeId,
+        issuanceId,
+      });
+
+      return {
+        challengeId,
+        expiresAt: expiresAt.toISOString(),
+      };
+    });
   }
 
-  async completeLogin(_input: VerifyLoginDto): Promise<{
+  async completeLogin(input: VerifyLoginDto): Promise<{
     accessToken: string;
     expiresIn: number;
     csrfToken: string;
     refreshToken: string;
   }> {
-    throw new NotImplementedException(
-      'Auth verify-login is not implemented yet.',
-    );
+    return this.withSecurityStorage(async () => {
+      const challengeUserId = await this.authState.findLoginChallengeUserId(
+        input.challengeId,
+      );
+
+      if (
+        challengeUserId &&
+        (await this.authState.isLoginLocked(challengeUserId))
+      ) {
+        throw this.accountTemporarilyLockedException();
+      }
+
+      const consumed = await this.authState.consumeLoginChallenge(
+        input.challengeId,
+        input.code,
+      );
+
+      if (consumed.status !== 'consumed') {
+        if (challengeUserId) {
+          const failure = await this.recordFailedLogin(challengeUserId);
+          if (failure.locked) {
+            throw this.accountTemporarilyLockedException();
+          }
+        }
+        throw this.invalidCredentialsException();
+      }
+
+      if (await this.authState.isLoginLocked(consumed.userId)) {
+        throw this.accountTemporarilyLockedException();
+      }
+
+      const account = await this.authRepository.findAccountById(consumed.userId);
+      if (!account || account.status !== AccountStatus.ACTIVE) {
+        throw this.invalidCredentialsException();
+      }
+
+      const tokens = await this.authSession.createSessionAfterLogin(
+        account.id,
+        account.role,
+      );
+
+      await this.authAudit.record({
+        type: AuthAuditEventType.SESSION_CREATED,
+        userId: account.id,
+        sessionId: tokens.sessionId,
+      });
+
+      return {
+        accessToken: tokens.accessToken,
+        expiresIn: tokens.expiresIn,
+        csrfToken: tokens.csrfToken,
+        refreshToken: tokens.refreshToken,
+      };
+    });
   }
 
   async refresh(_refreshToken: string): Promise<{
@@ -185,6 +302,56 @@ export class AuthService {
       purpose: AuthIssuancePurpose.ACTIVATION,
       userId,
       issuanceId,
+    });
+  }
+
+  private async passwordMatchesAccount(
+    rawPassword: string,
+    passwordHash: string | undefined,
+  ): Promise<boolean> {
+    if (!passwordHash) {
+      return false;
+    }
+
+    try {
+      const password = Password.create(rawPassword);
+      return this.passwordHasher.compare(
+        password,
+        PasswordHash.create(passwordHash),
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private async recordFailedLogin(
+    userId: string,
+  ): Promise<{ failures: number; locked: boolean }> {
+    const failure = await this.authState.incrementFailedLogin(userId);
+    await this.authAudit.record({
+      type: failure.locked
+        ? AuthAuditEventType.LOGIN_LOCKED
+        : AuthAuditEventType.LOGIN_FAILURE,
+      userId,
+      metadata: { failures: failure.failures },
+    });
+    return failure;
+  }
+
+  private async assertLoginRateLimit(
+    email: string,
+    clientIp: string,
+  ): Promise<void> {
+    await this.withSecurityStorage(async () => {
+      const count = await this.authState.incrementRateLimit(
+        LOGIN_RATE_OPERATION,
+        'email',
+        this.hashRateLimitValue(`${clientIp || 'unknown'}|${email}`),
+        LOGIN_RATE_LIMIT_TTL_SECONDS,
+      );
+      if (count > LOGIN_RATE_LIMIT) {
+        throw this.rateLimitedException();
+      }
     });
   }
 
@@ -288,6 +455,37 @@ export class AuthService {
       {
         code: 'RATE_LIMITED',
         message: 'Too many requests.',
+      },
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+
+  private invalidCredentialsException(): HttpException {
+    return new HttpException(
+      {
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid credentials.',
+      },
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
+
+  private emailNotVerifiedException(): HttpException {
+    return new HttpException(
+      {
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Email address has not been verified.',
+      },
+      HttpStatus.FORBIDDEN,
+    );
+  }
+
+  private accountTemporarilyLockedException(): HttpException {
+    return new HttpException(
+      {
+        code: 'ACCOUNT_TEMPORARILY_LOCKED',
+        message: 'Account is temporarily locked.',
+        retryAfter: LOGIN_LOCK_RETRY_AFTER_SECONDS,
       },
       HttpStatus.TOO_MANY_REQUESTS,
     );

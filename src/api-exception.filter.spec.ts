@@ -13,7 +13,7 @@ describe('ApiExceptionFilter', () => {
     json = jest.fn();
     host = {
       switchToHttp: () => ({
-        getResponse: () => ({ status, json }),
+        getResponse: () => ({ status, json, setHeader: jest.fn() }),
         getRequest: () => ({}),
       }),
     } as ArgumentsHost;

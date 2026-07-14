@@ -99,17 +99,49 @@ async function waitForActivationCode(email: string): Promise<string> {
   return extractSixDigitCode(body);
 }
 
+async function waitForLoginCode(email: string): Promise<string> {
+  const summary = await waitForMailpitMessage(
+    (entry) =>
+      entry.To.some((to) => to.Address === email) && /login/i.test(entry.Subject),
+  );
+  const detail = await getMailpitMessage(summary.ID);
+  const body = detail.Text || detail.HTML || detail.Snippet || summary.Snippet;
+  return extractSixDigitCode(body);
+}
+
+const REFRESH_COOKIE_NAME =
+  process.env.REFRESH_COOKIE_NAME?.trim() || 'shortlink_refresh';
+
 const GENERIC_INVALID_VERIFICATION = {
   statusCode: 401,
   code: 'INVALID_VERIFICATION',
   message: expect.any(String),
 };
 
+function parseSetCookieHeaders(
+  setCookie: string | string[] | undefined,
+): string[] {
+  if (!setCookie) {
+    return [];
+  }
+  return Array.isArray(setCookie) ? setCookie : [setCookie];
+}
+
+function findRefreshCookie(setCookie: string | string[] | undefined): string | undefined {
+  return parseSetCookieHeaders(setCookie).find((entry) =>
+    entry.startsWith(`${REFRESH_COOKIE_NAME}=`),
+  );
+}
+
 async function postAuthJson(
   path: string,
   body: unknown,
   headers: Record<string, string> = {},
-): Promise<{ statusCode: number; body: unknown }> {
+): Promise<{
+  statusCode: number;
+  body: unknown;
+  headers: Record<string, string | string[] | undefined>;
+}> {
   const response = await trustedHttpsRequest({
     method: 'POST',
     path,
@@ -129,7 +161,34 @@ async function postAuthJson(
     }
   }
 
-  return { statusCode: response.statusCode, body: parsed };
+  return {
+    statusCode: response.statusCode,
+    body: parsed,
+    headers: response.headers as Record<string, string | string[] | undefined>,
+  };
+}
+
+async function registerAndActivate(
+  email: string,
+  clientIp: string,
+): Promise<void> {
+  const register = await postAuthJson(
+    '/api/v1/auth/register',
+    {
+      email,
+      password: VALID_PASSWORD,
+      passwordConfirmation: VALID_PASSWORD,
+    },
+    { 'X-Forwarded-For': clientIp },
+  );
+  expect(register.statusCode).toBe(202);
+
+  const code = await waitForActivationCode(email);
+  const verified = await postAuthJson('/api/v1/auth/verify-email', {
+    email,
+    code,
+  });
+  expect(verified.statusCode).toBe(204);
 }
 
 describe('Auth HTTP module (e2e)', () => {
@@ -645,6 +704,158 @@ describe('Auth HTTP module (e2e)', () => {
         expect.objectContaining(GENERIC_INVALID_VERIFICATION),
       );
       expect((response.body as { errors?: unknown }).errors).toBeUndefined();
+    });
+  });
+
+  describe('POST /api/v1/auth/login and verify-login', () => {
+    it('rejects pending accounts with EMAIL_NOT_VERIFIED and does not send login mail', async () => {
+      const email = `pending-login-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.80';
+
+      const register = await postAuthJson(
+        '/api/v1/auth/register',
+        {
+          email,
+          password: VALID_PASSWORD,
+          passwordConfirmation: VALID_PASSWORD,
+        },
+        { 'X-Forwarded-For': clientIp },
+      );
+      expect(register.statusCode).toBe(202);
+      await waitForActivationCode(email);
+      await deleteAllMailpitMessages();
+
+      const login = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: VALID_PASSWORD },
+        { 'X-Forwarded-For': clientIp },
+      );
+
+      expect(login.statusCode).toBe(403);
+      expect(login.body).toEqual(
+        expect.objectContaining({
+          statusCode: 403,
+          code: 'EMAIL_NOT_VERIFIED',
+          message: expect.any(String),
+        }),
+      );
+      expect((login.body as { challengeId?: unknown }).challengeId).toBeUndefined();
+
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      expect(await countMailpitMessagesFor(email)).toBe(0);
+    });
+
+    it('completes login via Mailpit code, sets a secure refresh cookie, and authorizes the protected route', async () => {
+      const email = `login-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.81';
+
+      await registerAndActivate(email, clientIp);
+      await deleteAllMailpitMessages();
+
+      const login = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: VALID_PASSWORD },
+        { 'X-Forwarded-For': clientIp },
+      );
+      expect(login.statusCode).toBe(202);
+      expect(login.body).toEqual(
+        expect.objectContaining({
+          challengeId: expect.any(String),
+          expiresAt: expect.any(String),
+        }),
+      );
+
+      const challengeId = (login.body as { challengeId: string }).challengeId;
+      const code = await waitForLoginCode(email);
+
+      const verified = await postAuthJson('/api/v1/auth/verify-login', {
+        challengeId,
+        code,
+      });
+      expect(verified.statusCode).toBe(200);
+      expect(verified.body).toEqual(
+        expect.objectContaining({
+          accessToken: expect.any(String),
+          expiresIn: expect.any(Number),
+          csrfToken: expect.any(String),
+        }),
+      );
+      expect(
+        (verified.body as { refreshToken?: unknown }).refreshToken,
+      ).toBeUndefined();
+
+      const refreshCookie = findRefreshCookie(verified.headers['set-cookie']);
+      expect(refreshCookie).toBeDefined();
+      expect(refreshCookie!.toLowerCase()).toContain('httponly');
+      expect(refreshCookie!.toLowerCase()).toContain('secure');
+      expect(refreshCookie!.toLowerCase()).toMatch(/samesite=lax/);
+      expect(refreshCookie!).toMatch(/Path=\/api\/v1\/auth/i);
+
+      const accessToken = (verified.body as { accessToken: string }).accessToken;
+      const protectedOk = await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+      expect(protectedOk.body).toEqual({ ok: true });
+    });
+
+    it('revokes the previous session when a new login is completed', async () => {
+      const email = `relogin-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.82';
+
+      await registerAndActivate(email, clientIp);
+      await deleteAllMailpitMessages();
+
+      const firstLogin = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: VALID_PASSWORD },
+        { 'X-Forwarded-For': clientIp },
+      );
+      expect(firstLogin.statusCode).toBe(202);
+      const firstChallenge = (firstLogin.body as { challengeId: string })
+        .challengeId;
+      const firstCode = await waitForLoginCode(email);
+      const firstVerified = await postAuthJson('/api/v1/auth/verify-login', {
+        challengeId: firstChallenge,
+        code: firstCode,
+      });
+      expect(firstVerified.statusCode).toBe(200);
+      const firstAccessToken = (firstVerified.body as { accessToken: string })
+        .accessToken;
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${firstAccessToken}`)
+        .expect(200);
+
+      await deleteAllMailpitMessages();
+
+      const secondLogin = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: VALID_PASSWORD },
+        { 'X-Forwarded-For': '198.51.100.83' },
+      );
+      expect(secondLogin.statusCode).toBe(202);
+      const secondChallenge = (secondLogin.body as { challengeId: string })
+        .challengeId;
+      const secondCode = await waitForLoginCode(email);
+      const secondVerified = await postAuthJson('/api/v1/auth/verify-login', {
+        challengeId: secondChallenge,
+        code: secondCode,
+      });
+      expect(secondVerified.statusCode).toBe(200);
+      const secondAccessToken = (secondVerified.body as { accessToken: string })
+        .accessToken;
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${firstAccessToken}`)
+        .expect(401);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${secondAccessToken}`)
+        .expect(200);
     });
   });
 });

@@ -61,8 +61,9 @@ export class AuthController {
   @HttpCode(HttpStatus.ACCEPTED)
   async login(
     @Body() body: LoginDto,
+    @Req() request: Request,
   ): Promise<{ challengeId: string; expiresAt: string }> {
-    return this.authService.startLogin(body);
+    return this.authService.startLogin(body, request.ip ?? '');
   }
 
   @Post('verify-login')

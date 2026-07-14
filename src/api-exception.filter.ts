@@ -23,6 +23,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const body = this.toErrorBody(exception);
 
+    if (body.code === 'ACCOUNT_TEMPORARILY_LOCKED') {
+      response.setHeader('Retry-After', '3600');
+    }
+
     response.status(body.statusCode).json(body);
   }
 
