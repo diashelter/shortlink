@@ -42,6 +42,10 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Local TLS material (generated in Docker volume; never commit private keys)
+docker/nginx/certs/
+*.key
+
 # temp directory
 .temp
 .tmp
