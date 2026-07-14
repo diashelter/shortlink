@@ -13,9 +13,7 @@ import { LinkStatisticsRepository } from './link-statistics.repository';
 export class LinkStatisticsProcessor extends WorkerHost {
   private readonly logger = new Logger(LinkStatisticsProcessor.name);
 
-  constructor(
-    private readonly linkStatistics: LinkStatisticsRepository,
-  ) {
+  constructor(private readonly linkStatistics: LinkStatisticsRepository) {
     super();
   }
 

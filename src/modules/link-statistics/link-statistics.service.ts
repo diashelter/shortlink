@@ -61,7 +61,10 @@ export class LinkStatisticsService {
     const from = query.from!;
     const to = query.to!;
 
-    if (!this.isValidUtcCalendarDate(from) || !this.isValidUtcCalendarDate(to)) {
+    if (
+      !this.isValidUtcCalendarDate(from) ||
+      !this.isValidUtcCalendarDate(to)
+    ) {
       throw this.validationError({
         period: ['from and to must be valid UTC calendar dates (YYYY-MM-DD).'],
       });
@@ -73,7 +76,9 @@ export class LinkStatisticsService {
       });
     }
 
-    if (this.inclusiveCalendarMonths(from, to) > MAX_INCLUSIVE_CALENDAR_MONTHS) {
+    if (
+      this.inclusiveCalendarMonths(from, to) > MAX_INCLUSIVE_CALENDAR_MONTHS
+    ) {
       throw this.validationError({
         period: [
           `The period must span at most ${MAX_INCLUSIVE_CALENDAR_MONTHS} inclusive calendar months.`,

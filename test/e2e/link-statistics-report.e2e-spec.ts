@@ -236,7 +236,8 @@ describe('Link statistics report HTTP (e2e)', () => {
     await statisticsRepository.recordAccess({
       eventId: overrides.eventId ?? randomUUID(),
       linkId,
-      occurredAt: overrides.occurredAt ?? new Date(`${occurredOn}T12:00:00.000Z`),
+      occurredAt:
+        overrides.occurredAt ?? new Date(`${occurredOn}T12:00:00.000Z`),
       occurredOn,
       country: overrides.country ?? 'BR',
       visitorPseudonym: overrides.visitorPseudonym ?? PSEUDONYM_A,
@@ -517,7 +518,9 @@ describe('Link statistics report HTTP (e2e)', () => {
       to: '2026-07-31',
       timezone: 'UTC',
     });
-    expect(body.daily).toHaveLength(eachUtcDate('2025-08-01', '2026-07-31').length);
+    expect(body.daily).toHaveLength(
+      eachUtcDate('2025-08-01', '2026-07-31').length,
+    );
     expect(body.monthly).toHaveLength(12);
     expect(body.monthly[0].month).toBe('2025-08');
     expect(body.monthly[11].month).toBe('2026-07');

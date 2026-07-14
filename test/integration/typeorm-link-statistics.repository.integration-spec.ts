@@ -166,10 +166,12 @@ describe('TypeormLinkStatisticsRepository (integration)', () => {
       }),
     ]);
     expect(
-      await dataSource.getRepository(LinkMonthlyAggregateEntity).findOneByOrFail({
-        linkId: link.id,
-        occurredMonth: '2026-07',
-      }),
+      await dataSource
+        .getRepository(LinkMonthlyAggregateEntity)
+        .findOneByOrFail({
+          linkId: link.id,
+          occurredMonth: '2026-07',
+        }),
     ).toMatchObject({ accessCount: 1, dailyUniqueVisitorCount: 1 });
   });
 
@@ -470,9 +472,7 @@ describe('TypeormLinkStatisticsRepository (integration)', () => {
         { date: '2026-07-13', accesses: 0, dailyUniqueVisitors: 0 },
         { date: '2026-07-14', accesses: 1, dailyUniqueVisitors: 1 },
       ],
-      monthly: [
-        { month: '2026-07', accesses: 3, dailyUniqueVisitors: 3 },
-      ],
+      monthly: [{ month: '2026-07', accesses: 3, dailyUniqueVisitors: 3 }],
       countries: [
         { country: 'BR', accesses: 2, dailyUniqueVisitors: 2 },
         { country: 'US', accesses: 1, dailyUniqueVisitors: 1 },
@@ -505,16 +505,20 @@ describe('TypeormLinkStatisticsRepository (integration)', () => {
       }),
     ).toBe(1);
     expect(
-      await dataSource.getRepository(LinkMonthlyAggregateEntity).findOneByOrFail({
-        linkId: linkA.id,
-        occurredMonth: '2026-07',
-      }),
+      await dataSource
+        .getRepository(LinkMonthlyAggregateEntity)
+        .findOneByOrFail({
+          linkId: linkA.id,
+          occurredMonth: '2026-07',
+        }),
     ).toMatchObject({ accessCount: 1, dailyUniqueVisitorCount: 1 });
     expect(
-      await dataSource.getRepository(LinkMonthlyAggregateEntity).findOneByOrFail({
-        linkId: linkB.id,
-        occurredMonth: '2026-07',
-      }),
+      await dataSource
+        .getRepository(LinkMonthlyAggregateEntity)
+        .findOneByOrFail({
+          linkId: linkB.id,
+          occurredMonth: '2026-07',
+        }),
     ).toMatchObject({ accessCount: 1, dailyUniqueVisitorCount: 1 });
   });
 });

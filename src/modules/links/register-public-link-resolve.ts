@@ -132,8 +132,7 @@ function scheduleAccessCollection(
 
   void collectEligibleAccess(request, resolved, accessCollection).catch(
     (error: unknown) => {
-      const reason =
-        error instanceof Error ? error.name || 'Error' : 'unknown';
+      const reason = error instanceof Error ? error.name || 'Error' : 'unknown';
       logger.warn(`Link access collection failed (${reason})`);
     },
   );

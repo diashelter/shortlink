@@ -4,9 +4,7 @@ import { LinkStatisticsRepository } from './link-statistics.repository';
 
 @Injectable()
 export class LinkStatisticsFinalizerService {
-  constructor(
-    private readonly linkStatistics: LinkStatisticsRepository,
-  ) {}
+  constructor(private readonly linkStatistics: LinkStatisticsRepository) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_1AM, { timeZone: 'UTC' })
   async finalizePreviousUtcDays(): Promise<void> {

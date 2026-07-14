@@ -334,10 +334,7 @@ describe('Link statistics worker and finalizer (integration)', () => {
   });
 
   it('discards late access jobs for a finalized day through the processor', async () => {
-    const link = await createLink(
-      `late-${randomUUID()}@example.com`,
-      'late01',
-    );
+    const link = await createLink(`late-${randomUUID()}@example.com`, 'late01');
     await seedAccess(link.id);
     await finalizer.finalizePreviousUtcDays();
     expect(await events.count()).toBe(0);

@@ -28,7 +28,9 @@ describe('LocalCountryResolver', () => {
     const country = jest.fn();
     (Reader.open as jest.Mock).mockResolvedValue({ country });
 
-    const resolver = new LocalCountryResolver('/data/geoip/GeoLite2-Country.mmdb');
+    const resolver = new LocalCountryResolver(
+      '/data/geoip/GeoLite2-Country.mmdb',
+    );
     await resolver.whenReady();
 
     expect(resolver.resolve('not-an-ip')).toBe('Unknown');
@@ -39,7 +41,9 @@ describe('LocalCountryResolver', () => {
     const country = jest.fn();
     (Reader.open as jest.Mock).mockResolvedValue({ country });
 
-    const resolver = new LocalCountryResolver('/data/geoip/GeoLite2-Country.mmdb');
+    const resolver = new LocalCountryResolver(
+      '/data/geoip/GeoLite2-Country.mmdb',
+    );
     await resolver.whenReady();
 
     expect(resolver.resolve(samplePrivateIp)).toBe('Unknown');
@@ -60,11 +64,15 @@ describe('LocalCountryResolver', () => {
       country: () => ({ country: { isoCode: 'BR' } }),
     });
 
-    const resolver = new LocalCountryResolver('/data/geoip/GeoLite2-Country.mmdb');
+    const resolver = new LocalCountryResolver(
+      '/data/geoip/GeoLite2-Country.mmdb',
+    );
     await resolver.whenReady();
 
     expect(resolver.resolve(samplePublicIp)).toBe('BR');
-    expect(Reader.open).toHaveBeenCalledWith('/data/geoip/GeoLite2-Country.mmdb');
+    expect(Reader.open).toHaveBeenCalledWith(
+      '/data/geoip/GeoLite2-Country.mmdb',
+    );
   });
 
   it('returns Unknown when the database has no match', async () => {
@@ -74,7 +82,9 @@ describe('LocalCountryResolver', () => {
       },
     });
 
-    const resolver = new LocalCountryResolver('/data/geoip/GeoLite2-Country.mmdb');
+    const resolver = new LocalCountryResolver(
+      '/data/geoip/GeoLite2-Country.mmdb',
+    );
     await resolver.whenReady();
 
     expect(resolver.resolve(samplePublicIp)).toBe('Unknown');
@@ -85,7 +95,9 @@ describe('LocalCountryResolver', () => {
       country: () => ({ country: undefined }),
     });
 
-    const resolver = new LocalCountryResolver('/data/geoip/GeoLite2-Country.mmdb');
+    const resolver = new LocalCountryResolver(
+      '/data/geoip/GeoLite2-Country.mmdb',
+    );
     await resolver.whenReady();
 
     expect(resolver.resolve(samplePublicIp)).toBe('Unknown');

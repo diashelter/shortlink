@@ -63,9 +63,7 @@ describe('validateEnvironment', () => {
       'change-me-link-stats-pseudonym-secret-dev-only',
     );
     expect(config.linkStatsQueue).toEqual({ attempts: 5, backoffMs: 2000 });
-    expect(config.geoipCountryDbPath).toBe(
-      '/data/geoip/GeoLite2-Country.mmdb',
-    );
+    expect(config.geoipCountryDbPath).toBe('/data/geoip/GeoLite2-Country.mmdb');
     expect(config.frontendResetUrl).toBe(
       'https://localhost:8443/reset-password',
     );

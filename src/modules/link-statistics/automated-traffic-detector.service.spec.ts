@@ -24,16 +24,16 @@ describe('AutomatedTrafficDetector', () => {
     expect(detector.isAutomated('facebookexternalhit/1.1')).toBe(true);
     expect(detector.isAutomated('Twitterbot/1.0')).toBe(true);
     expect(detector.isAutomated('Slackbot-LinkExpanding 1.0')).toBe(true);
-    expect(detector.isAutomated('Mozilla/5.0 (compatible; Discordbot/2.0)')).toBe(
-      true,
-    );
+    expect(
+      detector.isAutomated('Mozilla/5.0 (compatible; Discordbot/2.0)'),
+    ).toBe(true);
     expect(detector.isAutomated('LinkedInBot/1.0')).toBe(true);
   });
 
   it('excludes known uptime monitor signatures', () => {
-    expect(detector.isAutomated('Mozilla/5.0 (compatible; UptimeRobot/2.0)')).toBe(
-      true,
-    );
+    expect(
+      detector.isAutomated('Mozilla/5.0 (compatible; UptimeRobot/2.0)'),
+    ).toBe(true);
     expect(detector.isAutomated('Pingdom.com_bot_version_1.4')).toBe(true);
   });
 

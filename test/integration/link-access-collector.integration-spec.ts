@@ -150,9 +150,7 @@ describe('Link access collector queue (integration)', () => {
   it('propagates enqueue failures to the caller without absorbing them', async () => {
     const access = buildAccess();
     const failure = new Error('redis unavailable');
-    const addSpy = jest
-      .spyOn(queue, 'add')
-      .mockRejectedValueOnce(failure);
+    const addSpy = jest.spyOn(queue, 'add').mockRejectedValueOnce(failure);
 
     try {
       await expect(collector.collect(access)).rejects.toThrow(

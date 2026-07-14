@@ -53,7 +53,10 @@ describe('Link statistics entities and migration (integration)', () => {
     );
   }
 
-  async function createLink(userId: string, shortCode: string): Promise<LinkEntity> {
+  async function createLink(
+    userId: string,
+    shortCode: string,
+  ): Promise<LinkEntity> {
     const links = dataSource.getRepository(LinkEntity);
     return links.save(
       links.create({
@@ -232,9 +235,9 @@ describe('Link statistics entities and migration (integration)', () => {
     expect(
       await dataSource.getRepository(LinkMonthlyAggregateEntity).count(),
     ).toBe(0);
-    expect(await dataSource.getRepository(LinkStatisticsDayEntity).count()).toBe(
-      0,
-    );
+    expect(
+      await dataSource.getRepository(LinkStatisticsDayEntity).count(),
+    ).toBe(0);
   });
 
   it('allows Unknown as country and has no IP or user-agent columns', async () => {
@@ -271,7 +274,13 @@ describe('Link statistics entities and migration (integration)', () => {
 
     const columnNames = columns.map((row) => row.column_name.toLowerCase());
     expect(columnNames).not.toEqual(
-      expect.arrayContaining(['ip', 'ipaddress', 'ip_address', 'useragent', 'user_agent']),
+      expect.arrayContaining([
+        'ip',
+        'ipaddress',
+        'ip_address',
+        'useragent',
+        'user_agent',
+      ]),
     );
 
     const sensitive = columnNames.filter((name) =>
