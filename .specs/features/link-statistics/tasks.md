@@ -98,10 +98,12 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Tools:** MCP: NONE; Skill: codenavi
 
 **Done when:**
-- [ ] Evento duplicado não incrementa nenhum agregado.
-- [ ] Dois acessos do mesmo pseudônimo/dia contam dois acessos e um único.
-- [ ] Dia finalizado descarta job tardio.
-- [ ] Finalização remove somente eventos e visitantes efêmeros do dia fechado.
+- [x] Evento duplicado não incrementa nenhum agregado.
+- [x] Dois acessos do mesmo pseudônimo/dia contam dois acessos e um único.
+- [x] Dia finalizado descarta job tardio.
+- [x] Finalização remove somente eventos e visitantes efêmeros do dia fechado.
+
+**Status:** ✅ Complete
 
 **Tests:** integration  
 **Gate:** `docker compose exec api npm run test:integration -- --runInBand`  
