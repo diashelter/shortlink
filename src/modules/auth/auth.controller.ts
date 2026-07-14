@@ -33,8 +33,11 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.ACCEPTED)
-  async register(@Body() body: RegisterDto): Promise<{ message: string }> {
-    await this.authService.register(body);
+  async register(
+    @Body() body: RegisterDto,
+    @Req() request: Request,
+  ): Promise<{ message: string }> {
+    await this.authService.register(body, request.ip ?? '');
     return GENERIC_ACCEPTED;
   }
 
@@ -48,8 +51,9 @@ export class AuthController {
   @HttpCode(HttpStatus.ACCEPTED)
   async resendEmailVerification(
     @Body() body: EmailDto,
+    @Req() request: Request,
   ): Promise<{ message: string }> {
-    await this.authService.resendEmailVerification(body);
+    await this.authService.resendEmailVerification(body, request.ip ?? '');
     return GENERIC_ACCEPTED;
   }
 
