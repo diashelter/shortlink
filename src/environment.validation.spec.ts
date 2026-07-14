@@ -5,6 +5,7 @@ const validEnv = {
   PORT: '3000',
   CORS_ALLOWED_ORIGINS: 'https://localhost:8443,https://app.example.com',
   TRUST_PROXY: 'true',
+  AUTH_HMAC_SECRET: 'change-me-auth-hmac-secret-dev-only',
   POSTGRES_DB: 'shortlink',
   POSTGRES_USER: 'shortlink',
   POSTGRES_PASSWORD: 'shortlink_dev_password',
@@ -29,11 +30,18 @@ describe('validateEnvironment', () => {
       'https://app.example.com',
     ]);
     expect(config.trustProxy).toBe(true);
+    expect(config.authHmacSecret).toBe('change-me-auth-hmac-secret-dev-only');
     expect(config.postgres.host).toBe('postgres');
     expect(config.redis.host).toBe('redis');
     expect(config.mailpit.host).toBe('mailpit');
     expect(config.mail.from).toBe('noreply@shortlink.local');
     expect(config.emailQueue).toEqual({ attempts: 5, backoffMs: 2000 });
+  });
+
+  it('fails when AUTH_HMAC_SECRET is missing', () => {
+    const { AUTH_HMAC_SECRET: _hmac, ...withoutHmac } = validEnv;
+
+    expect(() => validateEnvironment(withoutHmac)).toThrow(/AUTH_HMAC_SECRET/);
   });
 
   it('falls back to API_CONTAINER_PORT when PORT is absent', () => {

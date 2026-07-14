@@ -3,6 +3,7 @@ export type AppEnvironment = {
   port: number;
   corsAllowedOrigins: string[];
   trustProxy: boolean;
+  authHmacSecret: string;
   postgres: {
     db: string;
     user: string;
@@ -103,6 +104,7 @@ export function validateEnvironment(
     port: parsePort(portRaw, 'PORT'),
     corsAllowedOrigins: parseCorsOrigins(required(env, 'CORS_ALLOWED_ORIGINS')),
     trustProxy: parseBoolean(env.TRUST_PROXY, false),
+    authHmacSecret: required(env, 'AUTH_HMAC_SECRET'),
     postgres: {
       db: required(env, 'POSTGRES_DB'),
       user: required(env, 'POSTGRES_USER'),
