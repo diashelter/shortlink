@@ -15,11 +15,7 @@ import {
   AuthenticatedRequest,
   AuthSessionGuard,
 } from '../auth/auth-session.guard';
-import {
-  CreateLinkDto,
-  LinkIdParamDto,
-  ListLinksQueryDto,
-} from './links.dto';
+import { CreateLinkDto, LinkIdParamDto, ListLinksQueryDto } from './links.dto';
 import { LinksService } from './links.service';
 
 @Controller('links')
@@ -59,10 +55,7 @@ export class LinksController {
     @Req() request: AuthenticatedRequest,
     @Param() params: LinkIdParamDto,
   ) {
-    return this.linksService.deactivate(
-      request.user!.userId,
-      params.linkId,
-    );
+    return this.linksService.deactivate(request.user!.userId, params.linkId);
   }
 
   @Patch(':linkId/reactivate')
@@ -70,9 +63,6 @@ export class LinksController {
     @Req() request: AuthenticatedRequest,
     @Param() params: LinkIdParamDto,
   ) {
-    return this.linksService.reactivate(
-      request.user!.userId,
-      params.linkId,
-    );
+    return this.linksService.reactivate(request.user!.userId, params.linkId);
   }
 }

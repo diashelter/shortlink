@@ -25,9 +25,7 @@ export abstract class LinksRepository {
     status: LinkStatus,
   ): Promise<ChangeLinkStatusResult>;
 
-  abstract findActiveByShortCode(
-    shortCode: string,
-  ): Promise<LinkRecord | null>;
+  abstract findActiveByShortCode(shortCode: string): Promise<LinkRecord | null>;
 
   abstract findById(linkId: string): Promise<LinkRecord | null>;
 }

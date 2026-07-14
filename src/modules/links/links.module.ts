@@ -14,11 +14,7 @@ import { RedisLinkResolutionCache } from './redis-link-resolution-cache.service'
 import { TypeormLinksRepository } from './typeorm-links.repository';
 
 @Module({
-  imports: [
-    AuthModule,
-    RedisModule,
-    TypeOrmModule.forFeature([LinkEntity]),
-  ],
+  imports: [AuthModule, RedisModule, TypeOrmModule.forFeature([LinkEntity])],
   controllers: [LinksController],
   providers: [
     {

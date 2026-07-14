@@ -161,7 +161,9 @@ describe('LinksService', () => {
     repository.findActiveByShortCode.mockResolvedValue(record);
     resolutionCache.set.mockResolvedValue(undefined);
 
-    await expect(service.resolve('ABC123')).resolves.toBe(record.destinationUrl);
+    await expect(service.resolve('ABC123')).resolves.toBe(
+      record.destinationUrl,
+    );
     expect(resolutionCache.set).toHaveBeenCalledWith(
       'ABC123',
       record.destinationUrl,
@@ -170,7 +172,9 @@ describe('LinksService', () => {
     resolutionCache.get.mockRejectedValue(new Error('redis down'));
     repository.findActiveByShortCode.mockResolvedValue(record);
 
-    await expect(service.resolve('ABC123')).resolves.toBe(record.destinationUrl);
+    await expect(service.resolve('ABC123')).resolves.toBe(
+      record.destinationUrl,
+    );
   });
 
   it('invalidates cache before status mutation and skips the repository on invalidate failure', async () => {
@@ -198,10 +202,7 @@ describe('LinksService', () => {
   it('maps ownership and missing links before mutation', async () => {
     repository.findById.mockResolvedValueOnce(null);
     try {
-      await service.deactivate(
-        userId,
-        '00000000-0000-4000-8000-000000000000',
-      );
+      await service.deactivate(userId, '00000000-0000-4000-8000-000000000000');
       fail('expected deactivate to throw');
     } catch (error) {
       expect((error as HttpException).getResponse()).toEqual(

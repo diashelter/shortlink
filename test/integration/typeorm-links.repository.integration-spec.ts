@@ -223,14 +223,15 @@ describe('TypeormLinksRepository (integration)', () => {
     expect(page.items).toHaveLength(2);
     expect(page.items.every((item) => item.userId === owner.id)).toBe(true);
 
-    const ordered = [first.link, second.link, third.link].sort((left, right) => {
-      const byCreated =
-        right.createdAt.getTime() - left.createdAt.getTime();
-      if (byCreated !== 0) {
-        return byCreated;
-      }
-      return right.id.localeCompare(left.id);
-    });
+    const ordered = [first.link, second.link, third.link].sort(
+      (left, right) => {
+        const byCreated = right.createdAt.getTime() - left.createdAt.getTime();
+        if (byCreated !== 0) {
+          return byCreated;
+        }
+        return right.id.localeCompare(left.id);
+      },
+    );
 
     expect(page.items.map((item) => item.id)).toEqual([
       ordered[0].id,

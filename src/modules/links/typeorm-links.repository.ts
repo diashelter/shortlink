@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  DataSource,
-  EntityManager,
-  QueryFailedError,
-} from 'typeorm';
+import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { AccountEntity } from '../auth/account.entity';
 import { LinkEntity } from './link.entity';
 import { LinkStatus } from './link-status.enum';
@@ -199,14 +195,14 @@ export class TypeormLinksRepository extends LinksRepository {
     }
 
     const driverError = error.driverError as
-      | { code?: string; constraint?: string; detail?: string }
-      | undefined;
+      { code?: string; constraint?: string; detail?: string } | undefined;
 
     if (driverError?.code !== UNIQUE_VIOLATION) {
       return false;
     }
 
-    const haystack = `${driverError.constraint ?? ''} ${driverError.detail ?? ''}`.toLowerCase();
+    const haystack =
+      `${driverError.constraint ?? ''} ${driverError.detail ?? ''}`.toLowerCase();
     return haystack.includes('shortcode');
   }
 

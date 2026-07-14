@@ -104,9 +104,7 @@ describe('RedisLinkResolutionCache (integration)', () => {
     const brokenCache = new RedisLinkResolutionCache(broken.redisService);
 
     await expect(brokenCache.get(shortCode)).rejects.toThrow();
-    await expect(
-      brokenCache.set(shortCode, destinationUrl),
-    ).rejects.toThrow();
+    await expect(brokenCache.set(shortCode, destinationUrl)).rejects.toThrow();
     await expect(brokenCache.invalidate(shortCode)).rejects.toThrow();
 
     broken.client.disconnect();

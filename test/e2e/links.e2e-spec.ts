@@ -200,7 +200,9 @@ describe('Links management HTTP (e2e)', () => {
         id: expect.any(String),
         shortCode: expect.stringMatching(/^[A-Z0-9]{6}$/),
         destinationUrl: 'https://example.com/path?q=1#frag',
-        shortUrl: expect.stringMatching(/^https:\/\/localhost:8443\/[A-Z0-9]{6}$/),
+        shortUrl: expect.stringMatching(
+          /^https:\/\/localhost:8443\/[A-Z0-9]{6}$/,
+        ),
         status: 'ACTIVE',
       }),
     );
@@ -350,7 +352,9 @@ describe('Links management HTTP (e2e)', () => {
     const shortCode = created.body.shortCode as string;
     const cacheKey = `shortlink:links:resolution:${shortCode}`;
 
-    const malformed = await request(app.getHttpServer()).get('/bad').expect(404);
+    const malformed = await request(app.getHttpServer())
+      .get('/bad')
+      .expect(404);
     expect(malformed.body).toEqual(
       expect.objectContaining({
         statusCode: 404,
@@ -384,9 +388,7 @@ describe('Links management HTTP (e2e)', () => {
 
     expect(await redis.get(cacheKey)).toBeNull();
 
-    await request(app.getHttpServer())
-      .get(`/${shortCode}`)
-      .expect(404);
+    await request(app.getHttpServer()).get(`/${shortCode}`).expect(404);
 
     await request(app.getHttpServer())
       .patch(`/api/v1/links/${created.body.id}/reactivate`)
