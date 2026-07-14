@@ -159,6 +159,20 @@ export class AuthSessionService {
     await this.state.deleteSessionCache(session.id);
   }
 
+  async revokeAll(
+    userId: string,
+    reason: SessionRevocationReason,
+  ): Promise<void> {
+    const revokedSessionIds = await this.repository.revokeAllSessions(
+      userId,
+      reason,
+    );
+
+    for (const sessionId of revokedSessionIds) {
+      await this.deleteSessionCacheBestEffort(sessionId);
+    }
+  }
+
   async validateSession(sessionId: string): Promise<AuthPrincipal | null> {
     const cached = await this.readSessionCache(sessionId);
 

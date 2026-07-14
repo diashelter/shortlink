@@ -45,7 +45,7 @@ export abstract class AuthRepository {
   abstract revokeAllSessions(
     userId: string,
     reason: SessionRevocationReason,
-  ): Promise<void>;
+  ): Promise<string[]>;
 
   abstract findSessionByRefreshTokenHash(
     hash: string,

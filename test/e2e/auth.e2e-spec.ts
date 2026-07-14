@@ -13,6 +13,7 @@ import { createTrustedHttpsAgent, trustedHttpsRequest } from './https-client';
 
 const MAILPIT_API = `http://${process.env.MAILPIT_HOST ?? 'mailpit'}:8025/api/v1`;
 const VALID_PASSWORD = 'Valid1!pass';
+const NEW_VALID_PASSWORD = 'NewValid1!pass';
 const GENERIC_ACCEPTED = { message: 'Accepted.' };
 
 type MailpitMessageSummary = {
@@ -107,6 +108,24 @@ async function waitForLoginCode(email: string): Promise<string> {
   const detail = await getMailpitMessage(summary.ID);
   const body = detail.Text || detail.HTML || detail.Snippet || summary.Snippet;
   return extractSixDigitCode(body);
+}
+
+function extractResetTokenFromFragment(text: string): string {
+  const match = text.match(/#token=([A-Za-z0-9_-]+)/);
+  if (!match) {
+    throw new Error('Reset token not found in email fragment');
+  }
+  return match[1];
+}
+
+async function waitForResetEmailBody(email: string): Promise<string> {
+  const summary = await waitForMailpitMessage(
+    (entry) =>
+      entry.To.some((to) => to.Address === email) &&
+      /reset|password/i.test(entry.Subject),
+  );
+  const detail = await getMailpitMessage(summary.ID);
+  return detail.Text || detail.HTML || detail.Snippet || summary.Snippet;
 }
 
 const REFRESH_COOKIE_NAME =
@@ -1071,6 +1090,159 @@ describe('Auth HTTP module (e2e)', () => {
           statusCode: 403,
           code: 'CSRF_VALIDATION_FAILED',
           message: expect.any(String),
+        }),
+      );
+    });
+  });
+
+  describe('POST /api/v1/auth/forgot-password and reset-password', () => {
+    it('returns a generic 202 for missing, pending, and active accounts', async () => {
+      const missingEmail = `missing-reset-${randomUUID()}@example.com`;
+      const pendingEmail = `pending-reset-${randomUUID()}@example.com`;
+      const activeEmail = `active-reset-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.110';
+
+      const missing = await postAuthJson(
+        '/api/v1/auth/forgot-password',
+        { email: missingEmail },
+        { 'X-Forwarded-For': clientIp },
+      );
+      expect(missing.statusCode).toBe(202);
+      expect(missing.body).toEqual(GENERIC_ACCEPTED);
+
+      const pendingRegister = await postAuthJson(
+        '/api/v1/auth/register',
+        {
+          email: pendingEmail,
+          password: VALID_PASSWORD,
+          passwordConfirmation: VALID_PASSWORD,
+        },
+        { 'X-Forwarded-For': '198.51.100.111' },
+      );
+      expect(pendingRegister.statusCode).toBe(202);
+      await deleteAllMailpitMessages();
+
+      const pendingForgot = await postAuthJson(
+        '/api/v1/auth/forgot-password',
+        { email: pendingEmail },
+        { 'X-Forwarded-For': '198.51.100.112' },
+      );
+      expect(pendingForgot.statusCode).toBe(202);
+      expect(pendingForgot.body).toEqual(GENERIC_ACCEPTED);
+      await expect(
+        waitForMailpitMessage(
+          (entry) =>
+            entry.To.some((to) => to.Address === pendingEmail) &&
+            /reset|password/i.test(entry.Subject),
+          2_000,
+        ),
+      ).rejects.toThrow(/Timed out/);
+
+      await registerAndActivate(activeEmail, '198.51.100.113');
+      await deleteAllMailpitMessages();
+
+      const activeForgot = await postAuthJson(
+        '/api/v1/auth/forgot-password',
+        { email: activeEmail },
+        { 'X-Forwarded-For': '198.51.100.114' },
+      );
+      expect(activeForgot.statusCode).toBe(202);
+      expect(activeForgot.body).toEqual(GENERIC_ACCEPTED);
+
+      const body = await waitForResetEmailBody(activeEmail);
+      expect(body).toMatch(/#token=/);
+      expect(body).not.toMatch(/\?token=/);
+    });
+
+    it('resets password from Mailpit fragment token, revokes the old JWT, and allows login with the new password', async () => {
+      const email = `reset-flow-${randomUUID()}@example.com`;
+      const clientIp = '198.51.100.120';
+
+      await registerAndActivate(email, clientIp);
+      await deleteAllMailpitMessages();
+
+      const session = await completeLoginSession(email, clientIp);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${session.accessToken}`)
+        .expect(200);
+
+      await deleteAllMailpitMessages();
+
+      const forgot = await postAuthJson(
+        '/api/v1/auth/forgot-password',
+        { email },
+        { 'X-Forwarded-For': '198.51.100.121' },
+      );
+      expect(forgot.statusCode).toBe(202);
+      expect(forgot.body).toEqual(GENERIC_ACCEPTED);
+
+      const resetEmailBody = await waitForResetEmailBody(email);
+      expect(resetEmailBody).toMatch(/#token=/);
+      expect(resetEmailBody).not.toMatch(/\?token=/);
+      const token = extractResetTokenFromFragment(resetEmailBody);
+
+      const reset = await postAuthJson('/api/v1/auth/reset-password', {
+        token,
+        password: NEW_VALID_PASSWORD,
+        passwordConfirmation: NEW_VALID_PASSWORD,
+      });
+      expect(reset.statusCode).toBe(204);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${session.accessToken}`)
+        .expect(401);
+
+      const oldPasswordLogin = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: VALID_PASSWORD },
+        { 'X-Forwarded-For': '198.51.100.122' },
+      );
+      expect(oldPasswordLogin.statusCode).toBe(401);
+
+      await deleteAllMailpitMessages();
+
+      const newPasswordLogin = await postAuthJson(
+        '/api/v1/auth/login',
+        { email, password: NEW_VALID_PASSWORD },
+        { 'X-Forwarded-For': '198.51.100.123' },
+      );
+      expect(newPasswordLogin.statusCode).toBe(202);
+      const challengeId = (newPasswordLogin.body as { challengeId: string })
+        .challengeId;
+      const code = await waitForLoginCode(email);
+      const verified = await postAuthJson('/api/v1/auth/verify-login', {
+        challengeId,
+        code,
+      });
+      expect(verified.statusCode).toBe(200);
+      const newAccessToken = (verified.body as { accessToken: string })
+        .accessToken;
+
+      await request(app.getHttpServer())
+        .get('/api/v1/auth/test/protected')
+        .set('Authorization', `Bearer ${newAccessToken}`)
+        .expect(200);
+    });
+
+    it('rejects invalid reset passwords with the 422 envelope', async () => {
+      const response = await postAuthJson('/api/v1/auth/reset-password', {
+        token: 'opaque-reset-token',
+        password: 'weak',
+        passwordConfirmation: 'weak',
+      });
+
+      expect(response.statusCode).toBe(422);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          statusCode: 422,
+          code: 'VALIDATION_ERROR',
+          message: expect.any(String),
+          errors: expect.objectContaining({
+            password: expect.any(Array),
+          }),
         }),
       );
     });

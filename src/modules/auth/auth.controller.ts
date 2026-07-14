@@ -115,8 +115,11 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.ACCEPTED)
-  async forgotPassword(@Body() body: EmailDto): Promise<{ message: string }> {
-    await this.authService.requestPasswordReset(body);
+  async forgotPassword(
+    @Body() body: EmailDto,
+    @Req() request: Request,
+  ): Promise<{ message: string }> {
+    await this.authService.requestPasswordReset(body, request.ip ?? '');
     return GENERIC_ACCEPTED;
   }
 

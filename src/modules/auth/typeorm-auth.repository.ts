@@ -219,10 +219,10 @@ export class TypeormAuthRepository extends AuthRepository {
   async revokeAllSessions(
     userId: string,
     reason: SessionRevocationReason,
-  ): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
+  ): Promise<string[]> {
+    return this.dataSource.transaction(async (manager) => {
       await this.lockAccount(manager, userId);
-      await this.revokeActiveSessions(manager, userId, reason);
+      return this.revokeActiveSessions(manager, userId, reason);
     });
   }
 

@@ -2,7 +2,6 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  NotImplementedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
@@ -29,7 +28,7 @@ import {
   InvalidRefreshTokenError,
   RefreshTokenReuseError,
 } from './auth-session.service';
-import { AuthAuditEventType } from './auth.types';
+import { AuthAuditEventType, SessionRevocationReason } from './auth.types';
 import { Email } from './email.value-object';
 import { Password } from './password.value-object';
 import { PasswordHash } from './password-hash.value-object';
@@ -45,6 +44,7 @@ const LOGIN_LOCK_RETRY_AFTER_SECONDS = 3600;
 const ACTIVATION_RESEND_PURPOSE = 'activation';
 const REGISTER_RATE_OPERATION = 'register';
 const RESEND_RATE_OPERATION = 'resend-email-verification';
+const FORGOT_PASSWORD_RATE_OPERATION = 'forgot-password';
 const LOGIN_RATE_OPERATION = 'login';
 
 @Injectable()
@@ -289,16 +289,67 @@ export class AuthService {
     });
   }
 
-  async requestPasswordReset(_input: EmailDto): Promise<void> {
-    throw new NotImplementedException(
-      'Auth forgot-password is not implemented yet.',
+  async requestPasswordReset(
+    input: EmailDto,
+    clientIp: string,
+  ): Promise<void> {
+    const email = this.parseEmail(input.email);
+
+    await this.assertWithinRateLimits(
+      FORGOT_PASSWORD_RATE_OPERATION,
+      email.value,
+      clientIp,
     );
+
+    return this.withSecurityStorage(async () => {
+      const account = await this.authRepository.findAccountByEmail(email.value);
+      if (!account || account.status !== AccountStatus.ACTIVE) {
+        return;
+      }
+
+      const issuanceId = this.authCrypto.generateChallengeId();
+      await this.authState.setIssuance(
+        AuthIssuancePurpose.RESET,
+        account.id,
+        issuanceId,
+      );
+      await this.authEmail.enqueuePasswordReset({
+        userId: account.id,
+        issuanceId,
+      });
+      await this.authAudit.record({
+        type: AuthAuditEventType.PASSWORD_RESET_REQUESTED,
+        userId: account.id,
+      });
+    });
   }
 
-  async resetPassword(_input: ResetPasswordDto): Promise<void> {
-    throw new NotImplementedException(
-      'Auth reset-password is not implemented yet.',
+  async resetPassword(input: ResetPasswordDto): Promise<void> {
+    const password = this.parsePassword(input.password);
+    this.assertPasswordConfirmation(input.password, input.passwordConfirmation);
+
+    const tokenHash = this.authCrypto.hashToken(input.token);
+    const consumed =
+      await this.authRepository.consumePasswordResetToken(tokenHash);
+    if (!consumed) {
+      throw this.invalidVerificationException();
+    }
+
+    const passwordHash = await this.passwordHasher.hash(password);
+    await this.authRepository.updatePasswordHash(
+      consumed.userId,
+      passwordHash.value,
     );
+
+    await this.authSession.revokeAll(
+      consumed.userId,
+      SessionRevocationReason.PASSWORD_RESET,
+    );
+
+    await this.authAudit.record({
+      type: AuthAuditEventType.PASSWORD_RESET_COMPLETED,
+      userId: consumed.userId,
+    });
   }
 
   private async enqueueActivationIfAllowed(userId: string): Promise<void> {
