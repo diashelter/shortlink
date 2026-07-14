@@ -350,7 +350,7 @@ describe('Links management HTTP (e2e)', () => {
       .expect(201);
 
     const shortCode = created.body.shortCode as string;
-    const cacheKey = `shortlink:links:resolution:${shortCode}`;
+    const cacheKey = `shortlink:links:resolution:v2:${shortCode}`;
 
     const malformed = await request(app.getHttpServer())
       .get('/bad')
@@ -373,7 +373,12 @@ describe('Links management HTTP (e2e)', () => {
       .expect(302);
     expect(resolved.headers.location).toBe(destinationUrl);
 
-    expect(await redis.get(cacheKey)).toBe(destinationUrl);
+    expect(await redis.get(cacheKey)).toBe(
+      JSON.stringify({
+        linkId: created.body.id,
+        destinationUrl,
+      }),
+    );
 
     const cached = await request(app.getHttpServer())
       .get(`/${shortCode}`)

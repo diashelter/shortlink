@@ -147,34 +147,100 @@ describe('LinksService', () => {
   });
 
   it('resolves from cache hit without querying PostgreSQL', async () => {
-    resolutionCache.get.mockResolvedValue('https://example.com/cached');
+    const cached = {
+      linkId: '33333333-3333-4333-8333-333333333333',
+      destinationUrl: 'https://example.com/cached',
+    };
+    resolutionCache.get.mockResolvedValue(cached);
 
-    await expect(service.resolve('ABC123')).resolves.toBe(
-      'https://example.com/cached',
-    );
+    await expect(service.resolve('ABC123')).resolves.toEqual(cached);
     expect(repository.findActiveByShortCode).not.toHaveBeenCalled();
   });
 
   it('falls back to PostgreSQL on cache miss or cache failure and warms the cache', async () => {
     const record = linkRecord();
+    const resolved = {
+      linkId: record.id,
+      destinationUrl: record.destinationUrl,
+    };
     resolutionCache.get.mockResolvedValue(null);
     repository.findActiveByShortCode.mockResolvedValue(record);
     resolutionCache.set.mockResolvedValue(undefined);
 
-    await expect(service.resolve('ABC123')).resolves.toBe(
-      record.destinationUrl,
-    );
-    expect(resolutionCache.set).toHaveBeenCalledWith(
-      'ABC123',
-      record.destinationUrl,
-    );
+    await expect(service.resolve('ABC123')).resolves.toEqual(resolved);
+    expect(resolutionCache.set).toHaveBeenCalledWith('ABC123', resolved);
 
     resolutionCache.get.mockRejectedValue(new Error('redis down'));
     repository.findActiveByShortCode.mockResolvedValue(record);
 
-    await expect(service.resolve('ABC123')).resolves.toBe(
-      record.destinationUrl,
-    );
+    await expect(service.resolve('ABC123')).resolves.toEqual(resolved);
+  });
+
+  it('returns the same ResolvedLink shape on cache hit and miss', async () => {
+    const record = linkRecord();
+    const resolved = {
+      linkId: record.id,
+      destinationUrl: record.destinationUrl,
+    };
+
+    resolutionCache.get.mockResolvedValue(resolved);
+    const fromHit = await service.resolve('ABC123');
+
+    resolutionCache.get.mockResolvedValue(null);
+    repository.findActiveByShortCode.mockResolvedValue(record);
+    resolutionCache.set.mockResolvedValue(undefined);
+    const fromMiss = await service.resolve('ABC123');
+
+    expect(fromHit).toEqual(resolved);
+    expect(fromMiss).toEqual(resolved);
+    expect(Object.keys(fromHit).sort()).toEqual(['destinationUrl', 'linkId']);
+    expect(Object.keys(fromMiss).sort()).toEqual(['destinationUrl', 'linkId']);
+  });
+
+  it('returns ResolvedLink with link identity after warming the cache', async () => {
+    const record = linkRecord({
+      id: '44444444-4444-4444-8444-444444444444',
+      destinationUrl: 'https://example.com/warm',
+    });
+    resolutionCache.get.mockResolvedValue(null);
+    repository.findActiveByShortCode.mockResolvedValue(record);
+    resolutionCache.set.mockResolvedValue(undefined);
+
+    const resolved = await service.resolve('ABC123');
+
+    expect(resolved).toEqual({
+      linkId: record.id,
+      destinationUrl: record.destinationUrl,
+    });
+    expect(resolutionCache.set).toHaveBeenCalledWith('ABC123', resolved);
+  });
+
+  it('still returns ResolvedLink when cache write fails after PostgreSQL read', async () => {
+    const record = linkRecord();
+    resolutionCache.get.mockResolvedValue(null);
+    repository.findActiveByShortCode.mockResolvedValue(record);
+    resolutionCache.set.mockRejectedValue(new Error('redis write failed'));
+
+    await expect(service.resolve('ABC123')).resolves.toEqual({
+      linkId: record.id,
+      destinationUrl: record.destinationUrl,
+    });
+  });
+
+  it('throws LINK_NOT_FOUND when the active short code is missing', async () => {
+    resolutionCache.get.mockResolvedValue(null);
+    repository.findActiveByShortCode.mockResolvedValue(null);
+
+    try {
+      await service.resolve('MISSING');
+      fail('expected resolve to throw');
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((error as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ code: 'LINK_NOT_FOUND' }),
+      );
+    }
   });
 
   it('invalidates cache before status mutation and skips the repository on invalidate failure', async () => {

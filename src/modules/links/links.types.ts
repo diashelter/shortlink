@@ -41,3 +41,8 @@ export type PaginatedLinks = {
   limit: number;
   totalPages: number;
 };
+
+export type ResolvedLink = {
+  linkId: string;
+  destinationUrl: string;
+};

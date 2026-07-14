@@ -160,9 +160,9 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Tools:** MCP: NONE; Skill: codenavi
 
 **Done when:**
-- [ ] Cache hit e miss retornam o mesmo `ResolvedLink`.
-- [ ] A chave v2 não interpreta entradas de cache da versão anterior.
-- [ ] O `302`, `404` e fallback PostgreSQL de Links permanecem inalterados.
+- [x] Cache hit e miss retornam o mesmo `ResolvedLink`.
+- [x] A chave v2 não interpreta entradas de cache da versão anterior.
+- [x] O `302`, `404` e fallback PostgreSQL de Links permanecem inalterados.
 
 **Tests:** unit + integration  
 **Gate:** `docker compose exec api npm run test -- --runInBand && docker compose exec api npm run test:integration -- --runInBand`  

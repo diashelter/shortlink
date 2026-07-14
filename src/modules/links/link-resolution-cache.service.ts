@@ -1,7 +1,9 @@
-export abstract class LinkResolutionCache {
-  abstract get(shortCode: string): Promise<string | null>;
+import { ResolvedLink } from './links.types';
 
-  abstract set(shortCode: string, destinationUrl: string): Promise<void>;
+export abstract class LinkResolutionCache {
+  abstract get(shortCode: string): Promise<ResolvedLink | null>;
+
+  abstract set(shortCode: string, resolved: ResolvedLink): Promise<void>;
 
   abstract invalidate(shortCode: string): Promise<void>;
 }

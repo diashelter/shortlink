@@ -54,8 +54,8 @@ async function handlePublicLinkResolve(
   }
 
   try {
-    const destinationUrl = await linksService.resolve(code);
-    response.redirect(302, destinationUrl);
+    const resolved = await linksService.resolve(code);
+    response.redirect(302, resolved.destinationUrl);
   } catch (error) {
     if (error instanceof NotFoundException) {
       response.status(404).json({

@@ -13,7 +13,12 @@ import { LinkCodeGenerator } from './link-code-generator.service';
 import { LinkResolutionCache } from './link-resolution-cache.service';
 import { LinkStatus } from './link-status.enum';
 import { LinksRepository } from './links.repository';
-import { LinkRecord, ListLinksQuery, PaginatedLinks } from './links.types';
+import {
+  LinkRecord,
+  ListLinksQuery,
+  PaginatedLinks,
+  ResolvedLink,
+} from './links.types';
 
 export type LinkResponse = {
   id: string;
@@ -124,7 +129,7 @@ export class LinksService {
     return this.changeStatus(userId, linkId, LinkStatus.ACTIVE);
   }
 
-  async resolve(shortCode: string): Promise<string> {
+  async resolve(shortCode: string): Promise<ResolvedLink> {
     try {
       const cached = await this.resolutionCache.get(shortCode);
       if (cached !== null) {
@@ -141,15 +146,20 @@ export class LinksService {
       throw this.linkNotFoundException();
     }
 
+    const resolved: ResolvedLink = {
+      linkId: link.id,
+      destinationUrl: link.destinationUrl,
+    };
+
     try {
-      await this.resolutionCache.set(shortCode, link.destinationUrl);
+      await this.resolutionCache.set(shortCode, resolved);
     } catch (error) {
       this.logger.warn(
         `Resolution cache write failed after authoritative read (${this.errorMessage(error)})`,
       );
     }
 
-    return link.destinationUrl;
+    return resolved;
   }
 
   private async changeStatus(
