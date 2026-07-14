@@ -140,14 +140,16 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Tools:** MCP: NONE; Skill: codenavi
 
 **Done when:**
-- [ ] O processor chama somente o repositório/serviço de estatísticas e trata job desconhecido com log sanitizado.
-- [ ] O cron de fechamento às 01:00 UTC não é registrado no processo da API.
-- [ ] Uma execução repetida do finalizador é idempotente.
-- [ ] O fluxo assíncrono é verificável por polling com deadline, nunca `sleep` arbitrário.
+- [x] O processor chama somente o repositório/serviço de estatísticas e trata job desconhecido com log sanitizado.
+- [x] O cron de fechamento às 01:00 UTC não é registrado no processo da API.
+- [x] Uma execução repetida do finalizador é idempotente.
+- [x] O fluxo assíncrono é verificável por polling com deadline, nunca `sleep` arbitrário.
 
-**Tests:** integration  
-**Gate:** `docker compose exec api npm run test:integration -- --runInBand`  
-**Expected tests:** pelo menos 5 novos casos worker/finalização, sem redução da suíte existente.  
+**Status:** ✅ Complete
+
+**Tests:** integration
+**Gate:** `docker compose exec api npm run test:integration -- --runInBand`
+**Expected tests:** pelo menos 5 novos casos worker/finalização, sem redução da suíte existente.
 **Commit:** `feat(link-stats): process and finalize analytics events`
 
 ### T7: Enriquecer resolução com identidade do Link
