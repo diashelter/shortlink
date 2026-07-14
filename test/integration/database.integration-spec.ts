@@ -38,16 +38,12 @@ describe('TypeORM PostgreSQL (integration)', () => {
   });
 
   it('applies migrations through the TypeORM CLI DataSource', () => {
-    const output = execFileSync(
-      'npm',
-      ['run', 'migration:run'],
-      {
-        cwd: process.cwd(),
-        env: process.env,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-      },
-    );
+    const output = execFileSync('npm', ['run', 'migration:run'], {
+      cwd: process.cwd(),
+      env: process.env,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
 
     expect(output).toMatch(/Migration|No migrations are pending|migrations/i);
   });

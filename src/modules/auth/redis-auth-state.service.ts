@@ -117,8 +117,7 @@ export class RedisAuthStateService extends AuthStateService {
     hmacSecret?: string,
   ) {
     super();
-    this.hmacSecret =
-      hmacSecret ?? validateEnvironment().authHmacSecret;
+    this.hmacSecret = hmacSecret ?? validateEnvironment().authHmacSecret;
   }
 
   async setActivationCode(
@@ -221,9 +220,7 @@ export class RedisAuthStateService extends AuthStateService {
     );
   }
 
-  async findLoginChallengeUserId(
-    challengeId: string,
-  ): Promise<string | null> {
+  async findLoginChallengeUserId(challengeId: string): Promise<string | null> {
     const raw = await this.safe(() =>
       this.redis.get(this.loginChallengeKey(challengeId)),
     );
@@ -364,9 +361,7 @@ export class RedisAuthStateService extends AuthStateService {
     );
   }
 
-  async getSessionCache(
-    sessionId: string,
-  ): Promise<SessionCacheRecord | null> {
+  async getSessionCache(sessionId: string): Promise<SessionCacheRecord | null> {
     const raw = await this.safe(() =>
       this.redis.get(this.sessionKey(sessionId)),
     );
@@ -405,10 +400,7 @@ export class RedisAuthStateService extends AuthStateService {
     return `${KEY_PREFIX}verification:activation:${userId}`;
   }
 
-  private issuanceKey(
-    purpose: AuthIssuancePurpose,
-    subjectId: string,
-  ): string {
+  private issuanceKey(purpose: AuthIssuancePurpose, subjectId: string): string {
     if (purpose === AuthIssuancePurpose.RESET) {
       return `${KEY_PREFIX}reset-issuance:${subjectId}`;
     }

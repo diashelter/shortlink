@@ -149,14 +149,12 @@ describe('AuthSessionService (integration)', () => {
           : unreachable.set(key, value),
       del: (key: string) => unreachable.del(key),
       ttl: (key: string) => unreachable.ttl(key),
-      eval: (
-        script: string,
-        numKeys: number,
-        ...args: (string | number)[]
-      ) => unreachable.eval(script, numKeys, ...args),
+      eval: (script: string, numKeys: number, ...args: (string | number)[]) =>
+        unreachable.eval(script, numKeys, ...args),
       exists: (key: string) => unreachable.exists(key),
       incr: (key: string) => unreachable.incr(key),
-      expire: (key: string, seconds: number) => unreachable.expire(key, seconds),
+      expire: (key: string, seconds: number) =>
+        unreachable.expire(key, seconds),
     } as unknown as RedisService;
 
     const brokenState = new RedisAuthStateService(

@@ -36,7 +36,9 @@ export class TypeormAuthAuditService extends AuthAuditService {
     super();
   }
 
-  async record(input: RecordAuthAuditEventInput): Promise<AuthAuditEventRecord> {
+  async record(
+    input: RecordAuthAuditEventInput,
+  ): Promise<AuthAuditEventRecord> {
     const events = this.dataSource.getRepository(AuthAuditEventEntity);
     const saved = await events.save(
       events.create({

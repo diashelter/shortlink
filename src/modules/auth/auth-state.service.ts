@@ -4,9 +4,7 @@ export const AUTH_SECURITY_STORAGE_UNAVAILABLE =
 export class AuthSecurityStorageUnavailableError extends Error {
   readonly code = AUTH_SECURITY_STORAGE_UNAVAILABLE;
 
-  constructor(
-    message = 'Authentication security storage is unavailable',
-  ) {
+  constructor(message = 'Authentication security storage is unavailable') {
     super(message);
     this.name = 'AuthSecurityStorageUnavailableError';
   }

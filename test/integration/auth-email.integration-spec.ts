@@ -151,14 +151,11 @@ describe('Auth email queue and processor (integration)', () => {
         issuanceId,
       });
 
-      expect(addSpy).toHaveBeenCalledWith(
-        SEND_VERIFICATION_CODE_JOB,
-        {
-          userId,
-          purpose: AuthIssuancePurpose.ACTIVATION,
-          issuanceId,
-        },
-      );
+      expect(addSpy).toHaveBeenCalledWith(SEND_VERIFICATION_CODE_JOB, {
+        userId,
+        purpose: AuthIssuancePurpose.ACTIVATION,
+        issuanceId,
+      });
 
       const [, payload] = addSpy.mock.calls[0];
       expect(JSON.stringify(payload)).not.toMatch(/code|token|secret/i);
@@ -171,7 +168,9 @@ describe('Auth email queue and processor (integration)', () => {
   });
 
   it('processes activation job and delivers email via Mailpit', async () => {
-    const account = await createAccount(`activation-${randomUUID()}@example.com`);
+    const account = await createAccount(
+      `activation-${randomUUID()}@example.com`,
+    );
     const issuanceId = randomUUID();
 
     await authState.setIssuance(
@@ -280,7 +279,13 @@ describe('Auth email queue and processor (integration)', () => {
     expect(stored[0].tokenHash).not.toBe(tokenMatch![1]);
     expect(stored[0].tokenHash).toMatch(/^[a-f0-9]{64}$/);
 
-    const jobs = await queue.getJobs(['waiting', 'active', 'delayed', 'completed', 'failed']);
+    const jobs = await queue.getJobs([
+      'waiting',
+      'active',
+      'delayed',
+      'completed',
+      'failed',
+    ]);
     const resetJob = jobs.find(
       (candidate) =>
         candidate.name === SEND_PASSWORD_RESET_JOB &&
@@ -358,8 +363,8 @@ describe('Auth email queue and processor (integration)', () => {
       issuanceId,
     });
 
-    const firstSummary = await waitForMailpitMessage(
-      (message) => message.To.some((to) => to.Address === account.email),
+    const firstSummary = await waitForMailpitMessage((message) =>
+      message.To.some((to) => to.Address === account.email),
     );
     const firstDetail = await getMailpitMessage(firstSummary.ID);
     const firstCode = firstDetail.Text.match(/\b(\d{6})\b/)![1];
@@ -372,8 +377,8 @@ describe('Auth email queue and processor (integration)', () => {
       issuanceId,
     });
 
-    const secondSummary = await waitForMailpitMessage(
-      (message) => message.To.some((to) => to.Address === account.email),
+    const secondSummary = await waitForMailpitMessage((message) =>
+      message.To.some((to) => to.Address === account.email),
     );
     const secondDetail = await getMailpitMessage(secondSummary.ID);
     const secondCode = secondDetail.Text.match(/\b(\d{6})\b/)![1];

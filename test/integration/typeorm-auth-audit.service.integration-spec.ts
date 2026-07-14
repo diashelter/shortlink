@@ -99,14 +99,21 @@ describe('TypeormAuthAuditService (integration)', () => {
     const loginFailure = await audit.record({
       type: AuthAuditEventType.LOGIN_FAILURE,
       ipHash,
-      metadata: { reason: 'invalid_credentials', emailHash: 'email-hash-unknown' },
+      metadata: {
+        reason: 'invalid_credentials',
+        emailHash: 'email-hash-unknown',
+      },
     });
 
     expect(created.type).toBe(AuthAuditEventType.SESSION_CREATED);
     expect(revoked.type).toBe(AuthAuditEventType.SESSION_REVOKED);
     expect(locked.type).toBe(AuthAuditEventType.LOGIN_LOCKED);
-    expect(resetRequested.type).toBe(AuthAuditEventType.PASSWORD_RESET_REQUESTED);
-    expect(resetCompleted.type).toBe(AuthAuditEventType.PASSWORD_RESET_COMPLETED);
+    expect(resetRequested.type).toBe(
+      AuthAuditEventType.PASSWORD_RESET_REQUESTED,
+    );
+    expect(resetCompleted.type).toBe(
+      AuthAuditEventType.PASSWORD_RESET_COMPLETED,
+    );
     expect(loginFailure.type).toBe(AuthAuditEventType.LOGIN_FAILURE);
     expect(loginFailure.userId).toBeNull();
 

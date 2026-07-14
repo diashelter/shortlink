@@ -103,7 +103,8 @@ async function waitForActivationCode(email: string): Promise<string> {
 async function waitForLoginCode(email: string): Promise<string> {
   const summary = await waitForMailpitMessage(
     (entry) =>
-      entry.To.some((to) => to.Address === email) && /login/i.test(entry.Subject),
+      entry.To.some((to) => to.Address === email) &&
+      /login/i.test(entry.Subject),
   );
   const detail = await getMailpitMessage(summary.ID);
   const body = detail.Text || detail.HTML || detail.Snippet || summary.Snippet;
@@ -146,7 +147,9 @@ function parseSetCookieHeaders(
   return Array.isArray(setCookie) ? setCookie : [setCookie];
 }
 
-function findRefreshCookie(setCookie: string | string[] | undefined): string | undefined {
+function findRefreshCookie(
+  setCookie: string | string[] | undefined,
+): string | undefined {
   return parseSetCookieHeaders(setCookie).find((entry) =>
     entry.startsWith(`${REFRESH_COOKIE_NAME}=`),
   );
@@ -655,7 +658,9 @@ describe('Auth HTTP module (e2e)', () => {
           }),
         }),
       );
-      await expect(authRepository.findAccountByEmail(email)).resolves.toBeNull();
+      await expect(
+        authRepository.findAccountByEmail(email),
+      ).resolves.toBeNull();
     });
   });
 
@@ -805,7 +810,9 @@ describe('Auth HTTP module (e2e)', () => {
           message: expect.any(String),
         }),
       );
-      expect((login.body as { challengeId?: unknown }).challengeId).toBeUndefined();
+      expect(
+        (login.body as { challengeId?: unknown }).challengeId,
+      ).toBeUndefined();
 
       await new Promise((resolve) => setTimeout(resolve, 1500));
       expect(await countMailpitMessagesFor(email)).toBe(0);
@@ -857,7 +864,8 @@ describe('Auth HTTP module (e2e)', () => {
       expect(refreshCookie!.toLowerCase()).toMatch(/samesite=lax/);
       expect(refreshCookie!).toMatch(/Path=\/api\/v1\/auth/i);
 
-      const accessToken = (verified.body as { accessToken: string }).accessToken;
+      const accessToken = (verified.body as { accessToken: string })
+        .accessToken;
       const protectedOk = await request(app.getHttpServer())
         .get('/api/v1/auth/test/protected')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -1022,9 +1030,7 @@ describe('Auth HTTP module (e2e)', () => {
 
       const clearedCookie = findRefreshCookie(loggedOut.headers['set-cookie']);
       expect(clearedCookie).toBeDefined();
-      expect(clearedCookie!.toLowerCase()).toMatch(
-        /(?:max-age=0|expires=)/i,
-      );
+      expect(clearedCookie!.toLowerCase()).toMatch(/(?:max-age=0|expires=)/i);
 
       await request(app.getHttpServer())
         .get('/api/v1/auth/test/protected')
@@ -1412,9 +1418,7 @@ describe('Auth HTTP module (e2e)', () => {
       expect(JSON.stringify(wrongOrigin.body)).not.toContain(
         session.accessToken,
       );
-      expect(JSON.stringify(wrongOrigin.body)).not.toContain(
-        session.csrfToken,
-      );
+      expect(JSON.stringify(wrongOrigin.body)).not.toContain(session.csrfToken);
     });
   });
 });

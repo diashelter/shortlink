@@ -9,10 +9,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './api-exception.filter';
-import {
-  AppEnvironment,
-  validateEnvironment,
-} from './environment.validation';
+import { AppEnvironment, validateEnvironment } from './environment.validation';
 
 const JSON_PAYLOAD_LIMIT = '100kb';
 
@@ -32,10 +29,7 @@ function formatValidationErrors(
     }
 
     if (error.children?.length) {
-      Object.assign(
-        formatted,
-        formatValidationErrors(error.children, path),
-      );
+      Object.assign(formatted, formatValidationErrors(error.children, path));
     }
   }
 
@@ -56,10 +50,7 @@ export function createValidationPipe(): ValidationPipe {
   });
 }
 
-export function configureApp(
-  app: INestApplication,
-  env: AppEnvironment,
-): void {
+export function configureApp(app: INestApplication, env: AppEnvironment): void {
   const expressApp = app as NestExpressApplication;
 
   expressApp.setGlobalPrefix('api/v1');
@@ -79,7 +70,7 @@ export function configureApp(
 
 async function bootstrap(): Promise<void> {
   // Load local .env for vars not yet injected by Compose (e.g. CORS allowlist).
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
   require('dotenv').config({ quiet: true });
 
   const env = validateEnvironment(process.env);

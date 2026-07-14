@@ -91,9 +91,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     return 'HTTP_ERROR';
   }
 
-  private isFieldErrors(
-    value: unknown,
-  ): value is Record<string, string[]> {
+  private isFieldErrors(value: unknown): value is Record<string, string[]> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return false;
     }

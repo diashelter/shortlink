@@ -1,8 +1,7 @@
-import {
-  AuthAuditEventRecord,
-  RecordAuthAuditEventInput,
-} from './auth.types';
+import { AuthAuditEventRecord, RecordAuthAuditEventInput } from './auth.types';
 
 export abstract class AuthAuditService {
-  abstract record(input: RecordAuthAuditEventInput): Promise<AuthAuditEventRecord>;
+  abstract record(
+    input: RecordAuthAuditEventInput,
+  ): Promise<AuthAuditEventRecord>;
 }

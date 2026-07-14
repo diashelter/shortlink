@@ -8,9 +8,9 @@ describe('AuthSessionGuard', () => {
   let sessions: jest.Mocked<Pick<AuthSessionService, 'validateSession'>>;
   let guard: AuthSessionGuard;
 
-  function createContext(
-    authorization?: string,
-  ): ExecutionContext & { request: { headers: Record<string, string>; user?: unknown } } {
+  function createContext(authorization?: string): ExecutionContext & {
+    request: { headers: Record<string, string>; user?: unknown };
+  } {
     const request: {
       headers: Record<string, string>;
       user?: unknown;

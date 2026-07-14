@@ -147,9 +147,8 @@ describe('TypeormAuthRepository (integration)', () => {
     expect(rotated.refreshToken.tokenHash).toBe('refresh-next');
     expect(rotated.refreshToken.usedAt).toBeNull();
 
-    const previous = await repository.findRefreshTokenHistoryByHash(
-      'refresh-current',
-    );
+    const previous =
+      await repository.findRefreshTokenHistoryByHash('refresh-current');
     expect(previous?.usedAt).not.toBeNull();
 
     await repository.revokeAllSessions(

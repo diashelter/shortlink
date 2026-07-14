@@ -18,7 +18,10 @@ export enum AuthAuditEventType {
 }
 
 /** Sanitized audit payload — never include passwords, codes, tokens, raw emails, or headers. */
-export type AuthAuditMetadata = Record<string, string | number | boolean | null>;
+export type AuthAuditMetadata = Record<
+  string,
+  string | number | boolean | null
+>;
 
 export type AuthAuditEventRecord = {
   id: string;

@@ -29,8 +29,7 @@ export type SendPasswordResetJobData = {
 };
 
 export type AuthEmailJobData =
-  | SendVerificationCodeJobData
-  | SendPasswordResetJobData;
+  SendVerificationCodeJobData | SendPasswordResetJobData;
 
 export abstract class AuthEmailService {
   abstract enqueueVerificationCode(

@@ -1,5 +1,9 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { createTransport, type SentMessageInfo, type Transporter } from 'nodemailer';
+import {
+  createTransport,
+  type SentMessageInfo,
+  type Transporter,
+} from 'nodemailer';
 import { validateEnvironment } from './environment.validation';
 
 export type SmtpSendMailInput = {

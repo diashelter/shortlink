@@ -74,7 +74,9 @@ export class AuthService {
     );
 
     return this.withSecurityStorage(async () => {
-      const existing = await this.authRepository.findAccountByEmail(email.value);
+      const existing = await this.authRepository.findAccountByEmail(
+        email.value,
+      );
 
       if (!existing) {
         const passwordHash = await this.passwordHasher.hash(password);
@@ -128,7 +130,9 @@ export class AuthService {
     );
 
     return this.withSecurityStorage(async () => {
-      const existing = await this.authRepository.findAccountByEmail(email.value);
+      const existing = await this.authRepository.findAccountByEmail(
+        email.value,
+      );
       if (!existing || existing.status !== AccountStatus.PENDING) {
         return;
       }
@@ -239,7 +243,9 @@ export class AuthService {
         throw this.accountTemporarilyLockedException();
       }
 
-      const account = await this.authRepository.findAccountById(consumed.userId);
+      const account = await this.authRepository.findAccountById(
+        consumed.userId,
+      );
       if (!account || account.status !== AccountStatus.ACTIVE) {
         throw this.invalidCredentialsException();
       }
@@ -295,10 +301,7 @@ export class AuthService {
     });
   }
 
-  async requestPasswordReset(
-    input: EmailDto,
-    clientIp: string,
-  ): Promise<void> {
+  async requestPasswordReset(input: EmailDto, clientIp: string): Promise<void> {
     const email = this.parseEmail(input.email);
 
     await this.assertWithinRateLimits(
@@ -463,7 +466,9 @@ export class AuthService {
     });
   }
 
-  private async withSecurityStorage<T>(operation: () => Promise<T>): Promise<T> {
+  private async withSecurityStorage<T>(
+    operation: () => Promise<T>,
+  ): Promise<T> {
     try {
       return await operation();
     } catch (error) {

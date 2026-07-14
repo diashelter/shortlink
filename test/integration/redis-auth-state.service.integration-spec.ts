@@ -92,12 +92,12 @@ describe('RedisAuthStateService (integration)', () => {
       new Date(Date.now() + 60_000),
     );
 
-    await expect(service.consumeActivationCode(userId, code)).resolves.toEqual(
-      { status: 'consumed' },
-    );
-    await expect(service.consumeActivationCode(userId, code)).resolves.toEqual(
-      { status: 'missing' },
-    );
+    await expect(service.consumeActivationCode(userId, code)).resolves.toEqual({
+      status: 'consumed',
+    });
+    await expect(service.consumeActivationCode(userId, code)).resolves.toEqual({
+      status: 'missing',
+    });
   });
 
   it('allows only one concurrent activation consume to win', async () => {
@@ -177,9 +177,7 @@ describe('RedisAuthStateService (integration)', () => {
     );
     expect(challengeTtl).toBeGreaterThan(0);
 
-    const raw = await client.get(
-      `${KEY_PREFIX}login-challenge:${challengeId}`,
-    );
+    const raw = await client.get(`${KEY_PREFIX}login-challenge:${challengeId}`);
     expect(raw).not.toContain(code);
 
     const first = await service.consumeLoginChallenge(challengeId, code);
@@ -213,9 +211,7 @@ describe('RedisAuthStateService (integration)', () => {
   it('increments rate limits with TTL and enforces cooldown markers', async () => {
     const emailHash = createHash('sha256').update(randomUUID()).digest('hex');
     const userId = randomUUID();
-    const rateKey = trackKey(
-      `${KEY_PREFIX}rate:register:email:${emailHash}`,
-    );
+    const rateKey = trackKey(`${KEY_PREFIX}rate:register:email:${emailHash}`);
     trackKey(`${KEY_PREFIX}resend:activation:${userId}`);
 
     const first = await service.incrementRateLimit(
@@ -303,14 +299,12 @@ describe('RedisAuthStateService (integration)', () => {
           : unreachable.set(key, value),
       del: (key: string) => unreachable.del(key),
       ttl: (key: string) => unreachable.ttl(key),
-      eval: (
-        script: string,
-        numKeys: number,
-        ...args: (string | number)[]
-      ) => unreachable.eval(script, numKeys, ...args),
+      eval: (script: string, numKeys: number, ...args: (string | number)[]) =>
+        unreachable.eval(script, numKeys, ...args),
       exists: (key: string) => unreachable.exists(key),
       incr: (key: string) => unreachable.incr(key),
-      expire: (key: string, seconds: number) => unreachable.expire(key, seconds),
+      expire: (key: string, seconds: number) =>
+        unreachable.expire(key, seconds),
     } as unknown as RedisService;
 
     const broken = new RedisAuthStateService(
@@ -324,9 +318,9 @@ describe('RedisAuthStateService (integration)', () => {
       AuthSecurityStorageUnavailableError,
     );
 
-    await expect(broken.incrementRateLimit('login', 'ip', 'abc', 900)).rejects.toBeInstanceOf(
-      AuthSecurityStorageUnavailableError,
-    );
+    await expect(
+      broken.incrementRateLimit('login', 'ip', 'abc', 900),
+    ).rejects.toBeInstanceOf(AuthSecurityStorageUnavailableError);
 
     unreachable.disconnect();
   }, 10_000);

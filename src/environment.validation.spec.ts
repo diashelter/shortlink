@@ -1,5 +1,14 @@
 import { validateEnvironment } from './environment.validation';
 
+function omitEnvKey(
+  env: Record<string, string>,
+  key: string,
+): Record<string, string> {
+  const next = { ...env };
+  delete next[key];
+  return next;
+}
+
 const validEnv = {
   NODE_ENV: 'development',
   PORT: '3000',
@@ -49,14 +58,13 @@ describe('validateEnvironment', () => {
   });
 
   it('fails when AUTH_HMAC_SECRET is missing', () => {
-    const { AUTH_HMAC_SECRET: _hmac, ...withoutHmac } = validEnv;
+    const withoutHmac = omitEnvKey(validEnv, 'AUTH_HMAC_SECRET');
 
     expect(() => validateEnvironment(withoutHmac)).toThrow(/AUTH_HMAC_SECRET/);
   });
 
   it('fails when AUTH_TOKEN_HASH_SECRET is missing', () => {
-    const { AUTH_TOKEN_HASH_SECRET: _tokenHash, ...withoutTokenHash } =
-      validEnv;
+    const withoutTokenHash = omitEnvKey(validEnv, 'AUTH_TOKEN_HASH_SECRET');
 
     expect(() => validateEnvironment(withoutTokenHash)).toThrow(
       /AUTH_TOKEN_HASH_SECRET/,
@@ -64,13 +72,13 @@ describe('validateEnvironment', () => {
   });
 
   it('fails when JWT_ACCESS_SECRET is missing', () => {
-    const { JWT_ACCESS_SECRET: _jwt, ...withoutJwt } = validEnv;
+    const withoutJwt = omitEnvKey(validEnv, 'JWT_ACCESS_SECRET');
 
     expect(() => validateEnvironment(withoutJwt)).toThrow(/JWT_ACCESS_SECRET/);
   });
 
   it('falls back to API_CONTAINER_PORT when PORT is absent', () => {
-    const { PORT: _port, ...withoutPort } = validEnv;
+    const withoutPort = omitEnvKey(validEnv, 'PORT');
 
     const config = validateEnvironment({
       ...withoutPort,
@@ -81,13 +89,13 @@ describe('validateEnvironment', () => {
   });
 
   it('defaults TRUST_PROXY to false when omitted', () => {
-    const { TRUST_PROXY: _trustProxy, ...withoutTrustProxy } = validEnv;
+    const withoutTrustProxy = omitEnvKey(validEnv, 'TRUST_PROXY');
 
     expect(validateEnvironment(withoutTrustProxy).trustProxy).toBe(false);
   });
 
   it('fails when CORS_ALLOWED_ORIGINS is missing', () => {
-    const { CORS_ALLOWED_ORIGINS: _cors, ...withoutCors } = validEnv;
+    const withoutCors = omitEnvKey(validEnv, 'CORS_ALLOWED_ORIGINS');
 
     expect(() => validateEnvironment(withoutCors)).toThrow(
       /CORS_ALLOWED_ORIGINS/,
@@ -104,7 +112,7 @@ describe('validateEnvironment', () => {
   });
 
   it('fails when a required infrastructure variable is missing', () => {
-    const { POSTGRES_HOST: _host, ...withoutPostgresHost } = validEnv;
+    const withoutPostgresHost = omitEnvKey(validEnv, 'POSTGRES_HOST');
 
     expect(() => validateEnvironment(withoutPostgresHost)).toThrow(
       /POSTGRES_HOST/,

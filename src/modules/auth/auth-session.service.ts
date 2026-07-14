@@ -254,9 +254,7 @@ export class AuthSessionService {
     }
   }
 
-  private async deleteSessionCacheBestEffort(
-    sessionId: string,
-  ): Promise<void> {
+  private async deleteSessionCacheBestEffort(sessionId: string): Promise<void> {
     try {
       await this.state.deleteSessionCache(sessionId);
     } catch (error) {

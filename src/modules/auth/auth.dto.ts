@@ -31,9 +31,7 @@ class MatchRelatedPropertyConstraint implements ValidatorConstraintInterface {
   }
 }
 
-function Match(
-  property: string,
-): PropertyDecorator {
+function Match(property: string): PropertyDecorator {
   return Validate(MatchRelatedPropertyConstraint, [property]);
 }
 
