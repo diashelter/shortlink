@@ -12,11 +12,31 @@ export enum AuthAuditEventType {
   SESSION_CREATED = 'SESSION_CREATED',
   SESSION_REVOKED = 'SESSION_REVOKED',
   LOGIN_LOCKED = 'LOGIN_LOCKED',
-  PASSWORD_RESET = 'PASSWORD_RESET',
+  LOGIN_FAILURE = 'LOGIN_FAILURE',
+  PASSWORD_RESET_REQUESTED = 'PASSWORD_RESET_REQUESTED',
+  PASSWORD_RESET_COMPLETED = 'PASSWORD_RESET_COMPLETED',
 }
 
 /** Sanitized audit payload — never include passwords, codes, tokens, raw emails, or headers. */
 export type AuthAuditMetadata = Record<string, string | number | boolean | null>;
+
+export type AuthAuditEventRecord = {
+  id: string;
+  userId: string | null;
+  type: AuthAuditEventType;
+  sessionId: string | null;
+  ipHash: string | null;
+  createdAt: Date;
+  metadata: AuthAuditMetadata | null;
+};
+
+export type RecordAuthAuditEventInput = {
+  userId?: string | null;
+  type: AuthAuditEventType;
+  sessionId?: string | null;
+  ipHash?: string | null;
+  metadata?: AuthAuditMetadata | null;
+};
 
 export type AccountRecord = {
   id: string;
