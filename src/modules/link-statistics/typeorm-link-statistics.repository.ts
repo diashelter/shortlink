@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { LinkAccessEventEntity } from './link-access-event.entity';
-import { LinkDailyAggregateEntity } from './link-daily-aggregate.entity';
 import { LinkDailyVisitorEntity } from './link-daily-visitor.entity';
 import { LinkMonthlyAggregateEntity } from './link-monthly-aggregate.entity';
 import { LinkStatisticsDayEntity } from './link-statistics-day.entity';
@@ -343,9 +342,11 @@ export class TypeormLinkStatisticsRepository extends LinkStatisticsRepository {
     let month = fromMonth;
 
     while (year < toYear || (year === toYear && month <= toMonth)) {
-      months.push(`${year.toString().padStart(4, '0')}-${month
-        .toString()
-        .padStart(2, '0')}`);
+      months.push(
+        `${year.toString().padStart(4, '0')}-${month
+          .toString()
+          .padStart(2, '0')}`,
+      );
       month += 1;
       if (month > 12) {
         month = 1;

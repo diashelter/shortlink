@@ -87,3 +87,61 @@ _Evitar_: Link excluído, Link removido
 **Reativação de Link**:
 Retorno de um Link Desativado ao estado de Link Ativo, condicionado à disponibilidade no limite de dez Links Ativos do seu Usuário.
 _Evitar_: Recriação de Link, restauração de URL
+
+## Estatísticas de Acesso
+
+**Acesso**:
+Redirecionamento HTTP bem-sucedido de uma URL Curta ativa para a URL de Destino associada.
+_Evitar_: Tentativa de acesso, visualização da página de destino
+
+**Evento de Acesso**:
+Registro individual de um Acesso, associado a um Link, que sustenta a contagem de cliques e a agregação por data UTC, país e identificador pseudonimizado.
+_Evitar_: Clique agregado, log técnico
+
+**Identificador de Visitante Pseudonimizado**:
+Identificador derivado temporariamente do IP e do user-agent de uma requisição, sem persistir esses valores brutos, usado para reconhecer acessos de um mesmo visitante apenas no mesmo dia.
+_Evitar_: IP armazenado, identificador de usuário
+
+**Agregado de Acessos**:
+Síntese estatística diária ou mensal, delimitada em UTC, de Eventos de Acesso, usada para consulta histórica sem depender de dados brutos do visitante.
+_Evitar_: Evento de acesso, contador em tempo real
+
+**Retenção de Evento de Acesso**:
+Política que elimina Eventos de Acesso e identificadores pseudonimizados temporários ao finalizar seu dia UTC às 01:00, preservando somente os Agregados de Acessos.
+_Evitar_: Arquivamento de logs, retenção indefinida
+
+**Retenção de Agregado de Acessos**:
+Política que preserva os Agregados de Acessos enquanto o Link correspondente existir, inclusive quando estiver desativado.
+_Evitar_: Retenção fixa anual, retenção após remoção do Link
+
+**Estatística Eventual**:
+Estatística de acesso que pode ficar disponível em até cinco minutos após o redirecionamento, quando a infraestrutura está saudável, para preservar a baixa latência da URL Curta.
+_Evitar_: Contagem síncrona, estatística em tempo real
+
+**Disponibilidade da URL Curta**:
+Garantia de que a resolução de um Link Ativo continua redirecionando mesmo quando a coleta ou o processamento de estatísticas estiver indisponível.
+_Evitar_: Dependência de analytics, falha de redirecionamento por métricas
+
+**Tráfego Automatizado Conhecido**:
+Redirecionamento identificado por assinaturas conhecidas de crawler, preview ou monitoramento que não compõe as estatísticas de acesso.
+_Evitar_: Acesso humano, visitante único
+
+**Relatório de Link**:
+Consulta das estatísticas de um Link disponibilizada exclusivamente ao seu Usuário proprietário, com intervalo padrão dos últimos 30 dias e período customizado de até 12 meses.
+_Evitar_: Painel global, relatório público
+
+**Visitante Único Diário**:
+Visitante identificado pelo mesmo Identificador de Visitante Pseudonimizado dentro de um mesmo dia e para um mesmo Link.
+_Evitar_: Usuário autenticado, visitante recorrente
+
+**Visitantes Únicos Mensais**:
+Soma dos Visitantes Únicos Diários do mês; uma mesma pessoa acessando em dias distintos pode contribuir mais de uma vez para esse total.
+_Evitar_: Pessoas únicas no mês, visitantes recorrentes mensais
+
+**País de Acesso**:
+País inferido localmente a partir do IP recebido temporariamente, persistido no Evento de Acesso sem o IP bruto.
+_Evitar_: Localização exata, endereço IP
+
+**País Desconhecido**:
+Valor de agrupamento usado quando o País de Acesso não puder ser inferido, sem descartar o Evento de Acesso nem reduzir a contagem total.
+_Evitar_: Erro de acesso, país ausente

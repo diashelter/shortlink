@@ -2,7 +2,7 @@
 
 **Design:** `.specs/features/link-statistics/design.md`  
 **SPEC:** `.specs/features/link-statistics/spec.md`  
-**Status:** Validado — pronto para execução
+**Status:** ✅ Executado e validado — gate completo aprovado em 14 de julho de 2026
 
 ## Plano de execução
 
@@ -130,6 +130,8 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Expected tests:** pelo menos 4 novos casos de payload/fila, sem redução da suíte existente.  
 **Commit:** `feat(link-stats): enqueue sanitized access events`
 
+**Status:** ✅ Complete
+
 ### T6: Processar e finalizar estatísticas no worker
 
 **What:** Conectar processor BullMQ e agendador diário exclusivamente ao `queue-worker`.  
@@ -170,6 +172,8 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Gate:** `docker compose exec api npm run test -- --runInBand && docker compose exec api npm run test:integration -- --runInBand`  
 **Expected tests:** pelo menos 5 novos casos de resolução/cache, sem redução das suítes existentes.  
 **Commit:** `refactor(links): expose resolved link identity`
+
+**Status:** ✅ Complete
 
 ### T8: Integrar coleta não bloqueante ao redirecionamento
 
@@ -225,9 +229,23 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Tools:** MCP: NONE; Skill: tlc-spec-driven
 
 **Done when:**
-- [ ] Lint, build, unitários, integração e E2E passam dentro do serviço `api`.
-- [ ] Nenhum teste é removido, ignorado ou reduzido para aprovar o gate.
-- [ ] Evidências, contagens reais e desvios aprovados ficam registrados.
+- [x] Lint, build, unitários, integração e E2E passam dentro do serviço `api`.
+- [x] Nenhum teste é removido, ignorado ou reduzido para aprovar o gate.
+- [x] Evidências, contagens reais e desvios aprovados ficam registrados.
+
+**Status:** ✅ Complete
+
+**Evidências do gate completo (14 de julho de 2026):**
+
+| Gate | Resultado |
+| --- | --- |
+| Lint | Aprovado |
+| Build | Aprovado |
+| Unitário | 17 suites / **127** testes |
+| Integração | 16 suites / **98** testes |
+| E2E | 5 suites / **51** testes |
+
+Desvios aprovados: nenhum novo além do SPEC_DEVIATION já documentado em Links (middleware Express para resolução pública). O leitor MaxMind usa `import()` dinâmico porque `@maxmind/geoip2-node` v7 é ESM-only no app CommonJS Nest — leitura permanece local, sem rede.
 
 **Tests:** unit + integration + e2e  
 **Gate:** `docker compose exec api npm run lint && docker compose exec api npm run build && docker compose exec api npm run test -- --runInBand && docker compose exec api npm run test:integration -- --runInBand && docker compose exec api npm run test:e2e -- --runInBand`  

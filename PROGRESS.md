@@ -6,7 +6,7 @@
 
 O Shortlink é uma API NestJS para encurtamento de URLs com autenticação de usuários, PostgreSQL como fonte de verdade, Redis para estado distribuído e Docker Compose como ambiente obrigatório de desenvolvimento.
 
-Os bounded contexts `Auth` e `Links` estão concluídos e validados. `Links` entrega criação idempotente, listagem, desativação, reativação e resolução pública de URLs Curtas.
+Os bounded contexts `Auth`, `Links` e `LinkStatistics` estão concluídos e validados. `Links` entrega criação idempotente, listagem, desativação, reativação e resolução pública de URLs Curtas. `LinkStatistics` coleta acessos elegíveis de forma assíncrona e expõe o Relatório de Link privado ao proprietário.
 
 ## Implementado
 
@@ -20,6 +20,7 @@ Os bounded contexts `Auth` e `Links` estão concluídos e validados. `Links` ent
 - TypeORM configurado com `synchronize` desabilitado.
 - Migrations são geradas pelo CLI do TypeORM e executadas no container `api`.
 - Harnesses de testes unitários, de integração e E2E configurados.
+- Volume opcional `./data/geoip` para MMDB local de país (ausência resulta em `Unknown`).
 
 ### Base HTTP e segurança transversal
 
@@ -54,29 +55,40 @@ Os bounded contexts `Auth` e `Links` estão concluídos e validados. `Links` ent
 - Listagem paginada (`page`, `limit`, filtro de estado) somente dos Links do proprietário.
 - Desativação e reativação autenticadas, com isolamento entre Usuários (`403`/`404`).
 - Resolução pública `GET /{code}` com redirecionamento `302`; códigos inválidos, inexistentes ou desativados retornam `404 LINK_NOT_FOUND`.
-- Cache-aside Redis para resolução (`shortlink:links:resolution:{shortCode}`); PostgreSQL permanece a fonte de verdade.
+- Cache-aside Redis versionado para resolução (`shortlink:links:resolution:v2:{shortCode}`) com `ResolvedLink = { linkId, destinationUrl }`; PostgreSQL permanece a fonte de verdade.
 - Invalidação estrita de Redis antes de desativar/reativar; falha de Redis responde `503 LINK_CACHE_UNAVAILABLE` sem mutar o Link.
 - Migration `CreateLinksTable` gerada pelo CLI TypeORM.
 
+### Contexto `LinkStatistics`
+
+- Coleta fire-and-forget após `302` elegível; bots conhecidos são excluídos; falha de fila não altera o redirecionamento.
+- IP e user-agent existem só na derivação: HMAC diário por Link (`LINK_STATS_PSEUDONYM_SECRET`) e país via MMDB local ou `Unknown`.
+- Fila BullMQ `link-statistics` com payload sanitizado (`eventId`, `linkId`, `occurredAt`, `occurredOn`, `country`, `visitorPseudonym`).
+- Processamento e fechamento diário às 01:00 UTC exclusivamente no `queue-worker`.
+- Agregados diários/mensais e distribuição por país em PostgreSQL; eventos e visitantes efêmeros removidos no fechamento do dia.
+- Relatório autenticado `GET /api/v1/links/:linkId/statistics` com período UTC padrão de 30 dias e máximo de 12 meses-calendário.
+- Migration `CreateLinkStatisticsTables` gerada pelo CLI TypeORM.
+
 ### Qualidade verificada
 
-O gate completo após a feature `Links` foi aprovado em 14 de julho de 2026:
+O gate completo após a feature `LinkStatistics` foi aprovado em 14 de julho de 2026:
 
 - Lint e build aprovados.
-- 100 testes unitários aprovados.
-- 61 testes de integração aprovados.
-- 34 testes E2E aprovados.
+- 127 testes unitários aprovados.
+- 98 testes de integração aprovados.
+- 51 testes E2E aprovados.
 
 As evidências e o histórico de tarefas estão em:
 
 - `.specs/features/authentication/`
 - `.specs/features/links/`
+- `.specs/features/link-statistics/`
 
 ## Documentação canônica
 
 | Documento | Papel |
 | --- | --- |
-| `CONTEXT.md` | Glossário do domínio consolidado para identidade, autenticação e Links. |
+| `CONTEXT.md` | Glossário do domínio consolidado para identidade, autenticação, Links e estatísticas. |
 | `docs/requisitos-autenticacao.md` | Regras funcionais da autenticação. |
 | `docs/adr/0001-validacao-distribuida-de-sessoes.md` | Decisão de validação distribuída de sessões. |
 | `.specs/features/authentication/spec.md` | Especificação implementada e validada da autenticação. |
@@ -86,6 +98,10 @@ As evidências e o histórico de tarefas estão em:
 | `.specs/features/links/design.md` | Desenho técnico de Links, incluindo SPEC_DEVIATION da resolução pública. |
 | `.specs/features/links/tasks.md` | Histórico executado, gates e evidências de Links. |
 | `.specs/features/links/context.md` | Decisões de produto capturadas para Links. |
+| `.specs/features/link-statistics/spec.md` | Especificação implementada e validada de estatísticas de Link. |
+| `.specs/features/link-statistics/design.md` | Desenho técnico da coleta, agregação e relatório. |
+| `.specs/features/link-statistics/tasks.md` | Histórico executado, gates e evidências de estatísticas. |
+| `.specs/features/link-statistics/context.md` | Decisões de produto capturadas para estatísticas. |
 | `API para encurtar links multitenant.md` | Documento histórico de produto; onde divergir, prevalecem SPEC e `CONTEXT.md`. |
 
 ## Decisões de produto consolidadas em `Links`
@@ -106,6 +122,15 @@ As evidências e o histórico de tarefas estão em:
 - A base pública da URL Curta é uma origem HTTPS sem caminho, query string ou fragmento.
 - Desativação e reativação invalidam Redis antes da mutação e retornam `503` sem alterar o Link se Redis estiver indisponível.
 
+## Decisões de produto consolidadas em `LinkStatistics`
+
+- Um Acesso é a emissão de `302` para um Link Ativo; crawlers/previews/monitores conhecidos não entram nas métricas.
+- IP e user-agent nunca são persistidos, enfileirados ou logados; o país é inferido localmente ou vira `Unknown`.
+- Visitantes únicos são diários por Link; o valor mensal é a soma dos únicos diários.
+- Eventos e chaves pseudonimizadas são removidos às 01:00 UTC do dia seguinte; agregados permanecem enquanto o Link existir.
+- O relatório é privado ao proprietário, usa UTC, padrão de 30 dias e máximo de 12 meses-calendário.
+- Indisponibilidade de analytics não impede o `302`.
+
 ## Desvio técnico registrado
 
 A resolução pública não usa `setGlobalPrefix(..., { exclude: [{ path: ':code' }] })`. Em NestJS 10, esse exclude também remove o prefixo de `GET /links` e quebra `/api/v1/links`. A implementação registra middleware Express antecipado em `register-public-link-resolve.ts`, documentado no design de Links.
@@ -114,14 +139,19 @@ A resolução pública não usa `setGlobalPrefix(..., { exclude: [{ path: ':code
 
 - Alias personalizado escolhido pelo Usuário.
 - Domínio próprio ou namespace por tenant.
-- Métricas, contagem de cliques e relatórios.
+- Dashboard ou frontend.
+- Relatório consolidado da Conta.
+- Contador na listagem de Links.
+- Referrer, navegador, SO ou dispositivo.
+- Localização mais precisa que país.
+- Visitante único mensal real e rastreamento entre dias.
 - Exclusão definitiva de Links.
 - Edição da URL de Destino.
-- Frontend ou dashboard.
 - Rate limit específico para Links.
+- Uso de métricas para faturamento, limites ou antifraude.
 
 ## Próximos passos sugeridos
 
-1. Abrir PR da branch `feature/links` com as evidências do gate.
-2. Escolher a próxima capacidade entre as ideias adiadas (métricas, alias ou frontend).
+1. Abrir PR com as evidências do gate de `LinkStatistics`.
+2. Escolher a próxima capacidade entre as ideias adiadas (alias, frontend ou relatório consolidado).
 3. Manter `CONTEXT.md` e esta memória alinhados a qualquer decisão nova de produto.

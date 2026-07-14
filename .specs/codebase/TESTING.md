@@ -1,6 +1,6 @@
 # Matriz de testes
 
-**Status**: Atualizada para autenticação e Links  
+**Status**: Atualizada para autenticação, Links e estatísticas de Link  
 **Atualizada em**: 2026-07-14
 
 ## Ambiente obrigatório
@@ -29,7 +29,8 @@ A configuração de cada suíte deve isolar seu banco, chaves Redis e caixa de e
 | Contexto | Unitário | Integração | E2E |
 | --- | --- | --- | --- |
 | Auth | Value Objects, crypto, sessão, guards | Repositório, Redis auth state, abuso, e-mail | Registro, login, refresh, CSRF, limites |
-| Links | `DestinationUrl`, gerador de código, `LinksService` (cache hit/miss, invalidação estrita) | Entidade/migration, repositório transacional, cache Redis de resolução | Gestão autenticada, isolamento, limite, `GET /{code}` com 302/404 e HTTPS |
+| Links | `DestinationUrl`, gerador de código, `LinksService` (cache hit/miss, invalidação estrita, `ResolvedLink` v2) | Entidade/migration, repositório transacional, cache Redis de resolução v2 | Gestão autenticada, isolamento, limite, `GET /{code}` com 302/404 e HTTPS |
+| LinkStatistics | Detector de bots, HMAC diário, resolver local de país | Schema/constraints, repositório idempotente, fila sanitizada, worker/finalizador | Coleta fire-and-forget no `302`, relatório autenticado, 403/404/422 e Link desativado |
 ## Gate checks
 
 | Gate | Comando | Quando usar |
