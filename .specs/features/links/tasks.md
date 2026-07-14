@@ -271,15 +271,17 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] `GET /{code}` válido responde `302` com `Location` igual à URL canônica.
-- [ ] Código malformado, inexistente ou desativado responde `404 LINK_NOT_FOUND` sem autenticação.
-- [ ] A exclusão do prefixo não altera as rotas existentes sob `/api/v1`.
-- [ ] O harness E2E usa `configureApp()` para testar a configuração efetiva de bootstrap.
-- [ ] E2E HTTPS cobre cache hit, cache miss, invalidação por desativação e resolução após reativação.
+- [x] `GET /{code}` válido responde `302` com `Location` igual à URL canônica.
+- [x] Código malformado, inexistente ou desativado responde `404 LINK_NOT_FOUND` sem autenticação.
+- [x] A exclusão do prefixo não altera as rotas existentes sob `/api/v1`.
+- [x] O harness E2E usa `configureApp()` para testar a configuração efetiva de bootstrap.
+- [x] E2E HTTPS cobre cache hit, cache miss, invalidação por desativação e resolução após reativação.
 
 **Tests:** e2e  
 **Gate:** `docker compose exec api npm run test:e2e -- --runInBand`  
-**Verify:** `GET /ABC123` redireciona sem Bearer e `GET /api/v1/links` permanece protegido.
+**Verify:** `GET /ABC123` redireciona sem Bearer e `GET /api/v1/links` permanece protegido.  
+**Status:** ✅ Complete  
+**Note:** Resolução pública usa middleware Express em `register-public-link-resolve.ts` (SPEC_DEVIATION documentada) porque `exclude: ':code'` no Nest também remove o prefixo de `GET /links`.
 
 ---
 

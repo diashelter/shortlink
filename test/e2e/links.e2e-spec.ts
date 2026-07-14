@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { DataSource } from 'typeorm';
 import { RedisService } from '../../src/redis.service';
 import { createE2eApp } from './create-e2e-app';
+import { trustedHttpsRequest } from './https-client';
 
 const MAILPIT_API = `http://${process.env.MAILPIT_HOST ?? 'mailpit'}:8025/api/v1`;
 const VALID_PASSWORD = 'Valid1!pass';
@@ -334,5 +335,77 @@ describe('Links management HTTP (e2e)', () => {
         code: 'LINK_LIMIT_REACHED',
       }),
     );
+  });
+
+  it('resolves public short codes without auth and keeps /api/v1/links protected', async () => {
+    const token = await authenticatedBearer('198.51.100.14');
+    const destinationUrl = 'https://example.com/public-resolve?x=1#frag';
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/links')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ destinationUrl })
+      .expect(201);
+
+    const shortCode = created.body.shortCode as string;
+    const cacheKey = `shortlink:links:resolution:${shortCode}`;
+
+    const malformed = await request(app.getHttpServer()).get('/bad').expect(404);
+    expect(malformed.body).toEqual(
+      expect.objectContaining({
+        statusCode: 404,
+        code: 'LINK_NOT_FOUND',
+      }),
+    );
+
+    const missing = await request(app.getHttpServer())
+      .get('/ZZZZZZ')
+      .expect(404);
+    expect(missing.body.code).toBe('LINK_NOT_FOUND');
+
+    const resolved = await request(app.getHttpServer())
+      .get(`/${shortCode}`)
+      .redirects(0)
+      .expect(302);
+    expect(resolved.headers.location).toBe(destinationUrl);
+
+    expect(await redis.get(cacheKey)).toBe(destinationUrl);
+
+    const cached = await request(app.getHttpServer())
+      .get(`/${shortCode}`)
+      .redirects(0)
+      .expect(302);
+    expect(cached.headers.location).toBe(destinationUrl);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/links/${created.body.id}/deactivate`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(await redis.get(cacheKey)).toBeNull();
+
+    await request(app.getHttpServer())
+      .get(`/${shortCode}`)
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/links/${created.body.id}/reactivate`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const afterReactivate = await request(app.getHttpServer())
+      .get(`/${shortCode}`)
+      .redirects(0)
+      .expect(302);
+    expect(afterReactivate.headers.location).toBe(destinationUrl);
+
+    await request(app.getHttpServer()).get('/api/v1/links').expect(401);
+
+    const httpsResolve = await trustedHttpsRequest({
+      method: 'GET',
+      path: `/${shortCode}`,
+    });
+    expect(httpsResolve.statusCode).toBe(302);
+    expect(httpsResolve.headers.location).toBe(destinationUrl);
   });
 });
