@@ -4,6 +4,7 @@ import { validateEnvironment } from './environment.validation';
 import { RedisService } from './redis.service';
 
 export const AUTH_EMAIL_QUEUE = 'auth-email';
+export const LINK_STATS_QUEUE = 'link-statistics';
 
 @Module({
   imports: [
@@ -30,6 +31,24 @@ export const AUTH_EMAIL_QUEUE = 'auth-email';
     }),
     BullModule.registerQueue({
       name: AUTH_EMAIL_QUEUE,
+    }),
+    BullModule.registerQueueAsync({
+      name: LINK_STATS_QUEUE,
+      useFactory: () => {
+        const env = validateEnvironment();
+
+        return {
+          defaultJobOptions: {
+            attempts: env.linkStatsQueue.attempts,
+            backoff: {
+              type: 'exponential' as const,
+              delay: env.linkStatsQueue.backoffMs,
+            },
+            removeOnComplete: true,
+            removeOnFail: false,
+          },
+        };
+      },
     }),
   ],
   providers: [RedisService],

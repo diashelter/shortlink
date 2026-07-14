@@ -118,10 +118,10 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10
 **Tools:** MCP: NONE; Skill: codenavi
 
 **Done when:**
-- [ ] A fila e job `record-link-access` usam tentativas/backoff específicos.
-- [ ] O payload contém somente `eventId`, Link, instante UTC, data UTC, país e pseudônimo.
-- [ ] `jobId` é seguro e não contém `:`, IP, user-agent ou URL de Destino.
-- [ ] Falha de enqueue é propagável ao chamador para registro sanitizado, sem contrato HTTP.
+- [x] A fila e job `record-link-access` usam tentativas/backoff específicos.
+- [x] O payload contém somente `eventId`, Link, instante UTC, data UTC, país e pseudônimo.
+- [x] `jobId` é seguro e não contém `:`, IP, user-agent ou URL de Destino.
+- [x] Falha de enqueue é propagável ao chamador para registro sanitizado, sem contrato HTTP.
 
 **Tests:** integration  
 **Gate:** `docker compose exec api npm run test:integration -- --runInBand`  
