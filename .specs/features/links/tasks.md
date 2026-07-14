@@ -75,15 +75,16 @@ T3 + T4 + T6 → T7 → T8 → T9 → T10
 
 **Done when:**
 
-- [ ] Aceita somente URLs absolutas HTTP/HTTPS sem usuário ou senha.
-- [ ] Persiste a serialização da URL API e rejeita valor canônico acima de 2.048 caracteres.
-- [ ] Preserva path, query string e fragmento na URL canônica.
-- [ ] Não realiza qualquer chamada de rede.
-- [ ] Testes cobrem esquemas inválidos, credenciais, canonicalização, limite e imutabilidade.
+- [x] Aceita somente URLs absolutas HTTP/HTTPS sem usuário ou senha.
+- [x] Persiste a serialização da URL API e rejeita valor canônico acima de 2.048 caracteres.
+- [x] Preserva path, query string e fragmento na URL canônica.
+- [x] Não realiza qualquer chamada de rede.
+- [x] Testes cobrem esquemas inválidos, credenciais, canonicalização, limite e imutabilidade.
 
 **Tests:** unit  
 **Gate:** `docker compose exec api npm run test -- --runInBand`  
-**Verify:** testes comprovam que URLs equivalentes pela URL API produzem o mesmo valor canônico.
+**Verify:** testes comprovam que URLs equivalentes pela URL API produzem o mesmo valor canônico.  
+**Status:** ✅ Complete
 
 ---
 
