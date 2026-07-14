@@ -62,6 +62,10 @@ services:
       MAIL_FROM: ${MAIL_FROM:-noreply@shortlink.local}
       EMAIL_QUEUE_ATTEMPTS: ${EMAIL_QUEUE_ATTEMPTS:-5}
       EMAIL_QUEUE_BACKOFF_MS: ${EMAIL_QUEUE_BACKOFF_MS:-2000}
+      LINK_STATS_PSEUDONYM_SECRET: ${LINK_STATS_PSEUDONYM_SECRET:-change-me-link-stats-pseudonym-secret-dev-only}
+      LINK_STATS_QUEUE_ATTEMPTS: ${LINK_STATS_QUEUE_ATTEMPTS:-5}
+      LINK_STATS_QUEUE_BACKOFF_MS: ${LINK_STATS_QUEUE_BACKOFF_MS:-2000}
+      GEOIP_COUNTRY_DB_PATH: ${GEOIP_COUNTRY_DB_PATH:-}
       PUBLIC_SHORT_URL_BASE: ${PUBLIC_SHORT_URL_BASE:-https://localhost:8443}
       LINK_CODE_GENERATION_MAX_ATTEMPTS: ${LINK_CODE_GENERATION_MAX_ATTEMPTS:-5}
       LINK_RESOLUTION_CACHE_TTL_SECONDS: ${LINK_RESOLUTION_CACHE_TTL_SECONDS:-300}
@@ -69,6 +73,7 @@ services:
       - .:/app
       - /app/node_modules
       - shortlink_tls_certs:/certs:ro
+      - ./data/geoip:/data/geoip:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -161,12 +166,17 @@ services:
       MAIL_FROM: ${MAIL_FROM:-noreply@shortlink.local}
       EMAIL_QUEUE_ATTEMPTS: ${EMAIL_QUEUE_ATTEMPTS:-5}
       EMAIL_QUEUE_BACKOFF_MS: ${EMAIL_QUEUE_BACKOFF_MS:-2000}
+      LINK_STATS_PSEUDONYM_SECRET: ${LINK_STATS_PSEUDONYM_SECRET:-change-me-link-stats-pseudonym-secret-dev-only}
+      LINK_STATS_QUEUE_ATTEMPTS: ${LINK_STATS_QUEUE_ATTEMPTS:-5}
+      LINK_STATS_QUEUE_BACKOFF_MS: ${LINK_STATS_QUEUE_BACKOFF_MS:-2000}
+      GEOIP_COUNTRY_DB_PATH: ${GEOIP_COUNTRY_DB_PATH:-}
       PUBLIC_SHORT_URL_BASE: ${PUBLIC_SHORT_URL_BASE:-https://localhost:8443}
       LINK_CODE_GENERATION_MAX_ATTEMPTS: ${LINK_CODE_GENERATION_MAX_ATTEMPTS:-5}
       LINK_RESOLUTION_CACHE_TTL_SECONDS: ${LINK_RESOLUTION_CACHE_TTL_SECONDS:-300}
     volumes:
       - .:/app
       - /app/node_modules
+      - ./data/geoip:/data/geoip:ro
     depends_on:
       postgres:
         condition: service_healthy

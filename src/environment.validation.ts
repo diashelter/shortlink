@@ -28,6 +28,12 @@ export type AppEnvironment = {
     attempts: number;
     backoffMs: number;
   };
+  linkStatsPseudonymSecret: string;
+  linkStatsQueue: {
+    attempts: number;
+    backoffMs: number;
+  };
+  geoipCountryDbPath: string | undefined;
   frontendResetUrl: string;
   publicShortUrlBase: string;
   linkCodeGenerationMaxAttempts: number;
@@ -193,6 +199,18 @@ export function validateEnvironment(
         'EMAIL_QUEUE_BACKOFF_MS',
       ),
     },
+    linkStatsPseudonymSecret: required(env, 'LINK_STATS_PSEUDONYM_SECRET'),
+    linkStatsQueue: {
+      attempts: parsePositiveInt(
+        required(env, 'LINK_STATS_QUEUE_ATTEMPTS'),
+        'LINK_STATS_QUEUE_ATTEMPTS',
+      ),
+      backoffMs: parsePositiveInt(
+        required(env, 'LINK_STATS_QUEUE_BACKOFF_MS'),
+        'LINK_STATS_QUEUE_BACKOFF_MS',
+      ),
+    },
+    geoipCountryDbPath: parseOptionalPath(env.GEOIP_COUNTRY_DB_PATH),
     frontendResetUrl: required(env, 'FRONTEND_RESET_URL'),
     publicShortUrlBase: parsePublicShortUrlBase(
       required(env, 'PUBLIC_SHORT_URL_BASE'),
@@ -208,4 +226,12 @@ export function validateEnvironment(
       300,
     ),
   };
+}
+
+function parseOptionalPath(value: string | undefined): string | undefined {
+  if (value === undefined || value.trim() === '') {
+    return undefined;
+  }
+
+  return value.trim();
 }

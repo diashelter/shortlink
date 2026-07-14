@@ -29,6 +29,10 @@ const validEnv = {
   MAIL_FROM: 'noreply@shortlink.local',
   EMAIL_QUEUE_ATTEMPTS: '5',
   EMAIL_QUEUE_BACKOFF_MS: '2000',
+  LINK_STATS_PSEUDONYM_SECRET: 'change-me-link-stats-pseudonym-secret-dev-only',
+  LINK_STATS_QUEUE_ATTEMPTS: '5',
+  LINK_STATS_QUEUE_BACKOFF_MS: '2000',
+  GEOIP_COUNTRY_DB_PATH: '/data/geoip/GeoLite2-Country.mmdb',
   FRONTEND_RESET_URL: 'https://localhost:8443/reset-password',
   PUBLIC_SHORT_URL_BASE: 'https://localhost:8443',
   LINK_CODE_GENERATION_MAX_ATTEMPTS: '5',
@@ -55,12 +59,61 @@ describe('validateEnvironment', () => {
     expect(config.mailpit.host).toBe('mailpit');
     expect(config.mail.from).toBe('noreply@shortlink.local');
     expect(config.emailQueue).toEqual({ attempts: 5, backoffMs: 2000 });
+    expect(config.linkStatsPseudonymSecret).toBe(
+      'change-me-link-stats-pseudonym-secret-dev-only',
+    );
+    expect(config.linkStatsQueue).toEqual({ attempts: 5, backoffMs: 2000 });
+    expect(config.geoipCountryDbPath).toBe(
+      '/data/geoip/GeoLite2-Country.mmdb',
+    );
     expect(config.frontendResetUrl).toBe(
       'https://localhost:8443/reset-password',
     );
     expect(config.publicShortUrlBase).toBe('https://localhost:8443');
     expect(config.linkCodeGenerationMaxAttempts).toBe(5);
     expect(config.linkResolutionCacheTtlSeconds).toBe(300);
+  });
+
+  it('requires LINK_STATS_PSEUDONYM_SECRET', () => {
+    const withoutSecret = omitEnvKey(validEnv, 'LINK_STATS_PSEUDONYM_SECRET');
+
+    expect(() => validateEnvironment(withoutSecret)).toThrow(
+      /LINK_STATS_PSEUDONYM_SECRET/,
+    );
+  });
+
+  it('requires link statistics queue attempts and backoff', () => {
+    expect(() =>
+      validateEnvironment(omitEnvKey(validEnv, 'LINK_STATS_QUEUE_ATTEMPTS')),
+    ).toThrow(/LINK_STATS_QUEUE_ATTEMPTS/);
+
+    expect(() =>
+      validateEnvironment(omitEnvKey(validEnv, 'LINK_STATS_QUEUE_BACKOFF_MS')),
+    ).toThrow(/LINK_STATS_QUEUE_BACKOFF_MS/);
+  });
+
+  it('rejects non-positive link statistics queue settings', () => {
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        LINK_STATS_QUEUE_ATTEMPTS: '0',
+      }),
+    ).toThrow(/LINK_STATS_QUEUE_ATTEMPTS/);
+
+    expect(() =>
+      validateEnvironment({
+        ...validEnv,
+        LINK_STATS_QUEUE_BACKOFF_MS: '-1',
+      }),
+    ).toThrow(/LINK_STATS_QUEUE_BACKOFF_MS/);
+  });
+
+  it('treats GEOIP_COUNTRY_DB_PATH as optional with undefined when omitted', () => {
+    const withoutGeoip = omitEnvKey(validEnv, 'GEOIP_COUNTRY_DB_PATH');
+
+    const config = validateEnvironment(withoutGeoip);
+
+    expect(config.geoipCountryDbPath).toBeUndefined();
   });
 
   it('normalizes PUBLIC_SHORT_URL_BASE trailing slash to origin', () => {
