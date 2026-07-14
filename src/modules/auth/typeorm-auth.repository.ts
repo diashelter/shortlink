@@ -84,7 +84,7 @@ export class TypeormAuthRepository extends AuthRepository {
   ): Promise<CreateExclusiveSessionResult> {
     return this.dataSource.transaction(async (manager) => {
       await this.lockAccount(manager, userId);
-      await this.revokeActiveSessions(
+      const revokedSessionIds = await this.revokeActiveSessions(
         manager,
         userId,
         SessionRevocationReason.NEW_LOGIN,
@@ -116,6 +116,7 @@ export class TypeormAuthRepository extends AuthRepository {
       return {
         session: this.toSessionRecord(session),
         refreshToken: this.toRefreshTokenRecord(refreshToken),
+        revokedSessionIds,
       };
     });
   }
@@ -181,6 +182,7 @@ export class TypeormAuthRepository extends AuthRepository {
       return {
         session: this.toSessionRecord(savedSession),
         refreshToken: this.toRefreshTokenRecord(refreshToken),
+        revokedSessionIds: [],
       };
     });
   }
@@ -334,13 +336,13 @@ export class TypeormAuthRepository extends AuthRepository {
     manager: EntityManager,
     userId: string,
     reason: SessionRevocationReason,
-  ): Promise<void> {
+  ): Promise<string[]> {
     const activeSessions = await manager.find(AuthSessionEntity, {
       where: { userId, revokedAt: IsNull() },
     });
 
     if (activeSessions.length === 0) {
-      return;
+      return [];
     }
 
     const now = new Date();
@@ -350,6 +352,7 @@ export class TypeormAuthRepository extends AuthRepository {
     }
 
     await manager.save(activeSessions);
+    return activeSessions.map((session) => session.id);
   }
 
   private async markResetTokensUsed(

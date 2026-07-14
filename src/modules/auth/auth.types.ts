@@ -92,6 +92,7 @@ export type CreateExclusiveSessionInput = {
 export type CreateExclusiveSessionResult = {
   session: AuthSessionRecord;
   refreshToken: SessionRefreshTokenRecord;
+  revokedSessionIds: string[];
 };
 
 export type RotateRefreshTokenInput = {

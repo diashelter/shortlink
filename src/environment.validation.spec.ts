@@ -6,6 +6,8 @@ const validEnv = {
   CORS_ALLOWED_ORIGINS: 'https://localhost:8443,https://app.example.com',
   TRUST_PROXY: 'true',
   AUTH_HMAC_SECRET: 'change-me-auth-hmac-secret-dev-only',
+  AUTH_TOKEN_HASH_SECRET: 'change-me-auth-token-hash-secret-dev-only',
+  JWT_ACCESS_SECRET: 'change-me-jwt-access-secret-dev-only',
   POSTGRES_DB: 'shortlink',
   POSTGRES_USER: 'shortlink',
   POSTGRES_PASSWORD: 'shortlink_dev_password',
@@ -31,6 +33,10 @@ describe('validateEnvironment', () => {
     ]);
     expect(config.trustProxy).toBe(true);
     expect(config.authHmacSecret).toBe('change-me-auth-hmac-secret-dev-only');
+    expect(config.authTokenHashSecret).toBe(
+      'change-me-auth-token-hash-secret-dev-only',
+    );
+    expect(config.jwtAccessSecret).toBe('change-me-jwt-access-secret-dev-only');
     expect(config.postgres.host).toBe('postgres');
     expect(config.redis.host).toBe('redis');
     expect(config.mailpit.host).toBe('mailpit');
@@ -42,6 +48,21 @@ describe('validateEnvironment', () => {
     const { AUTH_HMAC_SECRET: _hmac, ...withoutHmac } = validEnv;
 
     expect(() => validateEnvironment(withoutHmac)).toThrow(/AUTH_HMAC_SECRET/);
+  });
+
+  it('fails when AUTH_TOKEN_HASH_SECRET is missing', () => {
+    const { AUTH_TOKEN_HASH_SECRET: _tokenHash, ...withoutTokenHash } =
+      validEnv;
+
+    expect(() => validateEnvironment(withoutTokenHash)).toThrow(
+      /AUTH_TOKEN_HASH_SECRET/,
+    );
+  });
+
+  it('fails when JWT_ACCESS_SECRET is missing', () => {
+    const { JWT_ACCESS_SECRET: _jwt, ...withoutJwt } = validEnv;
+
+    expect(() => validateEnvironment(withoutJwt)).toThrow(/JWT_ACCESS_SECRET/);
   });
 
   it('falls back to API_CONTAINER_PORT when PORT is absent', () => {
